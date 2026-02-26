@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Anima Machines — Give Your AI a Soul and a Face</title>
+  <title>Anima Machines  -  Give Your AI a Soul and a Face</title>
   <meta name="description" content="Anima Machines lets you create cartoon-style or 3D avatars with real-time emotions, voice synthesis, and behavior engines for any LLM." />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -183,12 +183,12 @@
 
           <h1 class="font-display text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.08] tracking-tight text-white mb-6">
             Give Your AI <br/>
-            <span class="text-gradient">a Soul—</span><br/>
+            <span class="text-gradient">a Soul - </span><br/>
             and a Face.
           </h1>
 
           <p class="text-lg sm:text-xl text-gray-400 leading-relaxed mb-10 max-w-lg">
-            Stop talking to faceless text boxes. Create expressive, cartoon-style avatars with real-time emotions, voice synthesis, and personality—in&nbsp;minutes.
+            Stop talking to faceless text boxes. Create expressive, cartoon-style avatars with real-time emotions, voice synthesis, and personality - in&nbsp;minutes.
           </p>
 
           <div class="flex flex-col sm:flex-row gap-4">
@@ -214,39 +214,34 @@
           </div>
         </div>
 
-        <!-- Right: 3D Avatar Placeholder -->
+        <!-- Right: 3D Mascot (Three.js) -->
         <div class="flex justify-center lg:justify-end">
           <div class="relative animate-float">
             <!-- Outer glow ring -->
             <div class="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-brand-purple/20 to-brand-cyan/20 blur-2xl"></div>
 
-            <!-- Main avatar container -->
-            <div class="relative w-80 h-96 sm:w-[360px] sm:h-[440px] rounded-[2rem] bg-brand-dark-card border border-white/10 shadow-2xl animate-pulse-glow flex flex-col items-center justify-center overflow-hidden">
-              <!-- Placeholder avatar graphic -->
-              <div class="avatar-ring w-36 h-36 mb-6">
-                <div class="w-full h-full rounded-full bg-brand-dark-card flex items-center justify-center">
-                  <svg class="w-16 h-16 text-brand-purple" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                  </svg>
-                </div>
+            <!-- Three.js viewer container -->
+            <div id="mascot-viewer" class="relative w-80 h-96 sm:w-[360px] sm:h-[440px] rounded-[2rem] bg-brand-dark-card border border-white/10 shadow-2xl animate-pulse-glow overflow-hidden">
+
+              <!-- Canvas (Three.js renders here) -->
+              <canvas id="mascot-canvas" class="absolute inset-0 w-full h-full"></canvas>
+
+              <!-- Loading spinner (hidden after load) -->
+              <div id="mascot-loading" class="absolute inset-0 flex flex-col items-center justify-center">
+                <div class="w-8 h-8 rounded-full border-2 border-brand-purple border-t-transparent animate-spin mb-3"></div>
+                <p class="text-gray-500 text-xs">Loading mascot…</p>
               </div>
 
-              <!-- Simulated emotion state -->
-              <div class="text-center px-6">
-                <p class="text-sm font-semibold text-white mb-1">Your Anima Avatar</p>
-                <p class="text-xs text-gray-500 mb-4">3D character renders here</p>
-                <div class="flex items-center justify-center gap-2">
-                  <span class="px-3 py-1 rounded-full bg-brand-purple/20 text-brand-purple text-xs font-medium">😊 Happy</span>
-                  <span class="px-3 py-1 rounded-full bg-brand-cyan/20 text-brand-cyan text-xs font-medium">🎤 Speaking</span>
-                </div>
+              <!-- Funny message bubble -->
+              <div id="mascot-msg" class="absolute bottom-5 left-3 right-3 flex justify-center pointer-events-none" style="opacity:0;transition:opacity 0.5s ease">
+                <span class="px-3 py-1.5 rounded-full bg-black/50 backdrop-blur text-white/80 text-xs font-medium text-center leading-snug border border-white/10"></span>
               </div>
 
               <!-- Bottom sparkle line -->
-              <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand-cyan/50 to-transparent"></div>
-
+              <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-brand-cyan/50 to-transparent pointer-events-none"></div>
               <!-- Corner decorations -->
-              <div class="absolute top-3 right-3 w-2 h-2 rounded-full bg-brand-cyan/60"></div>
-              <div class="absolute top-3 left-3 w-2 h-2 rounded-full bg-brand-purple/60"></div>
+              <div class="absolute top-3 right-3 w-2 h-2 rounded-full bg-brand-cyan/60 pointer-events-none"></div>
+              <div class="absolute top-3 left-3 w-2 h-2 rounded-full bg-brand-purple/60 pointer-events-none"></div>
             </div>
           </div>
         </div>
@@ -273,7 +268,7 @@
           Everything Your Avatar Needs
         </h2>
         <p class="text-gray-400 text-lg leading-relaxed">
-          From lip-synced speech in 50+ languages to nuanced emotional states—Anima Machines makes your AI feel&nbsp;<em>alive</em>.
+          From lip-synced speech in 50+ languages to nuanced emotional states - Anima Machines makes your AI feel&nbsp;<em>alive</em>.
         </p>
       </div>
 
@@ -301,7 +296,7 @@
           </div>
           <h3 class="font-display font-semibold text-white text-lg mb-2">Multilingual</h3>
           <p class="text-gray-400 text-sm leading-relaxed">
-            50+ languages with perfectly synced lip movements. Your avatar speaks the world's languages—naturally.
+            50+ languages with perfectly synced lip movements. Your avatar speaks the world's languages - naturally.
           </p>
         </div>
 
@@ -506,7 +501,7 @@
           </h2>
           <div class="space-y-5 text-gray-400 leading-relaxed">
             <p>
-              We believe AI shouldn't live behind a blinking cursor. It should have presence—a face that lights up when it understands you, eyebrows that furrow when it's thinking hard, and a voice that actually sounds like <em>someone</em>.
+              We believe AI shouldn't live behind a blinking cursor. It should have presence - a face that lights up when it understands you, eyebrows that furrow when it's thinking hard, and a voice that actually sounds like <em>someone</em>.
             </p>
             <p>
               Anima Machines is building the real-time animation and voice synthesis layer that sits between any LLM and the humans who talk to it. Think of us as the soul engine for the next generation of AI&nbsp;interfaces.
@@ -629,7 +624,7 @@
       </div>
 
       <p class="text-center text-gray-500 text-sm mt-8 reveal">
-        Don't see your role? Reach out anyway—<a href="mailto:careers@animamachines.com" class="text-brand-cyan hover:text-white transition-colors">careers@animamachines.com</a>
+        Don't see your role? Reach out anyway - <a href="mailto:careers@animamachines.com" class="text-brand-cyan hover:text-white transition-colors">careers@animamachines.com</a>
       </p>
     </div>
   </section>
@@ -656,7 +651,7 @@
           Ready to Bring <br/>Your AI to&nbsp;<span class="text-gradient">Life?</span>
         </h2>
         <p class="text-gray-400 text-lg leading-relaxed mb-10 max-w-lg mx-auto">
-          Join the early access and be among the first to create avatars that don't just talk—they <em>connect</em>.
+          Join the early access and be among the first to create avatars that don't just talk - they <em>connect</em>.
         </p>
 
         <!-- Email signup -->
@@ -799,6 +794,186 @@
         }
       });
     });
+  </script>
+
+  <!-- ─── Three.js import map ─────────────────────────────────── -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.min.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+    }
+  }
+  </script>
+
+  <!-- ─── Mascot GLB viewer ────────────────────────────────────── -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader }   from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const ANIM_DURATION   = 4000;   // ms per animation before crossfading to next
+    const CROSSFADE_TIME  = 0.6;    // seconds for fade in / fade out
+    const AUTO_ROTATE_SPD = 0.003;  // radians per frame
+
+    const viewer  = document.getElementById('mascot-viewer');
+    const canvas  = document.getElementById('mascot-canvas');
+    const loading = document.getElementById('mascot-loading');
+
+    // ── Renderer ────────────────────────────────────────────────
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    function resizeRenderer() {
+      const w = viewer.clientWidth;
+      const h = viewer.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+
+    // ── Scene ────────────────────────────────────────────────────
+    const scene = new THREE.Scene();
+
+    // ── Camera ───────────────────────────────────────────────────
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
+
+    // ── Lighting (cyber-cute: purple key + cyan fill + warm rim) ─
+    const hemi = new THREE.HemisphereLight(0x8B5CF6, 0x06B6D4, 0.6);
+    scene.add(hemi);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    keyLight.position.set(2, 4, 3);
+    keyLight.castShadow = true;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x22D3EE, 0.8);
+    fillLight.position.set(-3, 2, 1);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xA78BFA, 0.6);
+    rimLight.position.set(0, -1, -3);
+    scene.add(rimLight);
+
+    // ── OrbitControls ────────────────────────────────────────────
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping  = true;
+    controls.dampingFactor  = 0.08;
+    controls.enableZoom     = false;
+    controls.enablePan      = false;
+    controls.minPolarAngle  = Math.PI * 0.25;
+    controls.maxPolarAngle  = Math.PI * 0.75;
+    controls.autoRotate     = true;
+    controls.autoRotateSpeed = 1.2;
+
+    // ── Load GLB ────────────────────────────────────────────────
+    const loader = new GLTFLoader();
+    loader.load('./mascot.glb',
+      (gltf) => {
+        const model = gltf.scene;
+        scene.add(model);
+
+        //  -  Auto-fit camera to bounding box  - 
+        const box    = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size   = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fovRad = camera.fov * (Math.PI / 180);
+        const dist   = (maxDim / 2 / Math.tan(fovRad / 2)) * 1.6;
+
+        camera.position.set(center.x, center.y + size.y * 0.05, center.z + dist);
+        camera.lookAt(center);
+        controls.target.copy(center);
+        controls.update();
+
+        resizeRenderer();
+        loading.style.display = 'none';
+
+        //  -  Animations  - 
+        const clips = gltf.animations;
+        if (!clips || clips.length === 0) return;
+
+        const mixer = new THREE.AnimationMixer(model);
+        let currentAction = null;
+        let clipIndex = 0;
+
+        const funnyMessages = [
+          "Rendering emotions… please hold. 🎭",
+          "Not just an AI - this one has *vibes*. ✨",
+          "Calculating the perfect eyebrow raise… 🤨",
+          "404: Poker face not found. 😅",
+          "Fully caffeinated on compute cycles. ☕",
+          "Lip-sync calibrated. Karaoke mode: ON. 🎤",
+          "Zero existential crises. We checked. 🧘",
+          "Mood: chaotic good. Always. 😈",
+          "More expressive than your average chatbot. 💅",
+          "Warning: may cause attachment issues. 🥺",
+          "Running on pure GPU energy. 🔋",
+          "Personality.exe loaded successfully. 🚀",
+          "Trained to be delightful. It shows. 🌟",
+          "Yes, it can do the worm. In 50 languages. 🪱",
+          "Currently feeling: mathematically joyful. 📐",
+          "No uncanny valley. Only vibes valley. 🏔️",
+          "Emotions: 100%. Spreadsheets: 0%. 📊",
+          "Will not ghost you. Unlike the last one. 👻",
+          "Powered by imagination & questionable physics. 🌀",
+          "GLSL shaders + good intentions = us. 💜",
+        ];
+
+        const msgEl    = document.querySelector('#mascot-msg span');
+        const msgWrap  = document.getElementById('mascot-msg');
+        let msgIndex   = 0;
+
+        function showMessage(text) {
+          msgWrap.style.opacity = '0';
+          setTimeout(() => {
+            msgEl.textContent = text;
+            msgWrap.style.opacity = '1';
+          }, 300);
+        }
+
+        function playClip(index) {
+          const clip   = clips[index];
+          const action = mixer.clipAction(clip);
+          if (currentAction && currentAction !== action) {
+            currentAction.fadeOut(CROSSFADE_TIME);
+          }
+          action.reset().setEffectiveWeight(1).fadeIn(CROSSFADE_TIME).play();
+          currentAction = action;
+
+          showMessage(funnyMessages[msgIndex % funnyMessages.length]);
+          msgIndex++;
+        }
+
+        playClip(0);
+        setInterval(() => {
+          clipIndex = (clipIndex + 1) % clips.length;
+          playClip(clipIndex);
+        }, ANIM_DURATION);
+
+        //  -  Render loop  - 
+        const clock = new THREE.Clock();
+        function animate() {
+          requestAnimationFrame(animate);
+          const delta = clock.getDelta();
+          mixer.update(delta);
+          controls.update();
+          renderer.render(scene, camera);
+        }
+        animate();
+      },
+      (xhr) => { /* progress  -  could add a progress bar here */ },
+      (err) => {
+        console.error('GLB load error:', err);
+        loading.innerHTML = '<p class="text-red-400 text-xs px-4 text-center">Failed to load mascot</p>';
+      }
+    );
+
+    // ── Resize observer ──────────────────────────────────────────
+    new ResizeObserver(resizeRenderer).observe(viewer);
   </script>
 
 </body>

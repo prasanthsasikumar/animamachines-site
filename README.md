@@ -1,8 +1,8 @@
 # Anima Machines
 
-> **Give Your AI a Soul—and a Face.**
+> **Give Your AI a Soul - and a Face.**
 
-Anima Machines is a platform for creating expressive, cartoon-style or 3D avatars with real-time emotional animations, voice synthesis, and a powerful behavior engine—connectable to any LLM.
+Anima Machines is a platform for creating expressive, cartoon-style or 3D avatars with real-time emotional animations, voice synthesis, and a powerful behavior engine - connectable to any LLM.
 
 🔗 **Live site:** [animamachines.com](https://animamachines.com) &nbsp;·&nbsp; 🚀 [Early Access](#)
 
@@ -51,11 +51,11 @@ npx serve .
 
 ## Deploying
 
-This is a static site — deploy anywhere in seconds:
+This is a static site  -  deploy anywhere in seconds:
 
-- **GitHub Pages** — push to `main`, enable Pages from repo Settings → Pages → Deploy from branch
-- **Vercel** — `vercel --prod`
-- **Netlify** — drag-and-drop the folder onto the Netlify dashboard
+- **GitHub Pages**  -  push to `main`, enable Pages from repo Settings → Pages → Deploy from branch
+- **Vercel**  -  `vercel --prod`
+- **Netlify**  -  drag-and-drop the folder onto the Netlify dashboard
 
 ## Tech stack
 
