@@ -60,6 +60,7 @@ export function CharacterCreationForm() {
   const [mode, setMode] = useState<CreationMode>("text");
   const [prompt, setPrompt] = useState("");
   const [imageDataUri, setImageDataUri] = useState<string | null>(null);
+  const [fullBodyImageUrl, setFullBodyImageUrl] = useState<string | null>(null);
   const [step, setStep] = useState<
     | "idle"
     | "creating"
@@ -83,6 +84,7 @@ export function CharacterCreationForm() {
   const [progress, setProgress] = useState(0);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
+  const [awaitingPhotoApproval, setAwaitingPhotoApproval] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -192,6 +194,9 @@ export function CharacterCreationForm() {
     if (!imageDataUri) return;
     setError(null);
     setStep("creating");
+    setProgress(0);
+    setFullBodyImageUrl(null);
+    setAwaitingPhotoApproval(false);
     try {
       const id = await initAvatar();
       void saveAsset("input_photo", imageDataUri);
@@ -212,13 +217,31 @@ export function CharacterCreationForm() {
       if (!i2iRes.ok) throw new Error(i2iData?.error ?? "Image transform failed");
 
       const i2iTaskId = i2iData.task_id as string;
-      const fullBodyImageUrl = await pollUntilSucceeded(
+      const fullBody = await pollUntilSucceeded(
         i2iTaskId,
         "image-to-image" as TaskType,
         setProgress
       );
-      if (!fullBodyImageUrl) throw new Error("No image output");
-      void saveAsset("fullbody_photo", fullBodyImageUrl);
+      if (!fullBody) throw new Error("No image output");
+      setFullBodyImageUrl(fullBody);
+      void saveAsset("fullbody_photo", fullBody);
+      setStep("idle");
+      setProgress(0);
+      setAwaitingPhotoApproval(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+      setStep("error");
+    }
+  }
+
+  async function handleContinueFromApprovedPhoto() {
+    if (!fullBodyImageUrl) return;
+    setError(null);
+    setAwaitingPhotoApproval(false);
+    setStep("creating");
+    setProgress(0);
+    try {
+      await initAvatar();
 
       // 2) Image-to-3D: use full-body image as both geometry + texture guide
       const res = await fetch("/api/meshy-ai/image-to-3d", {
@@ -258,6 +281,12 @@ export function CharacterCreationForm() {
       setError(e instanceof Error ? e.message : "Something went wrong");
       setStep("error");
     }
+  }
+
+  function handleRetryFullBody() {
+    setFullBodyImageUrl(null);
+    setAwaitingPhotoApproval(false);
+    void handleCreateFromPhoto();
   }
 
   function handleCreate() {
@@ -493,15 +522,48 @@ export function CharacterCreationForm() {
                   </div>
                 )}
 
+                {fullBodyImageUrl && (
+                  <div className="space-y-3 rounded-2xl border border-brand-cyan/40 bg-brand-dark-card/80 p-4">
+                    <p className="text-sm text-gray-200">
+                      Does this full-body image look OK before we turn it into a 3D character?
+                    </p>
+                    <img
+                      src={fullBodyImageUrl}
+                      alt="Full-body preview from Meshy"
+                      className="h-48 w-full rounded-xl border border-white/10 bg-black/40 object-contain"
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={handleContinueFromApprovedPhoto}
+                        disabled={isWorking}
+                        className="inline-flex flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-brand-purple to-brand-cyan px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                      >
+                        Yes, looks good — continue
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRetryFullBody}
+                        disabled={isWorking}
+                        className="inline-flex flex-1 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/10 disabled:opacity-60"
+                      >
+                        Try again
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   type="button"
                   onClick={handleCreate}
-                  disabled={!canCreate || isWorking}
+                  disabled={!canCreate || isWorking || awaitingPhotoApproval}
                   className="mt-2 w-full rounded-xl bg-gradient-to-r from-brand-purple to-brand-cyan px-6 py-3 text-sm font-semibold text-white disabled:opacity-70"
                 >
                   {isWorking
                     ? "Creating character…"
-                    : "Create character from photo"}
+                    : fullBodyImageUrl
+                      ? "Regenerate full-body photo"
+                      : "Create character from photo"}
                 </button>
               </div>
             </>
