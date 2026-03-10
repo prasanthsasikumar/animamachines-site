@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -14,6 +15,16 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return NextResponse.json(
+      { error: "Server configuration error" },
+      { status: 500 }
+    );
   }
 
   try {
@@ -43,7 +54,7 @@ export async function POST(request: Request) {
     }
     const blob = await res.blob();
 
-    const avatarRes = await supabase
+    const avatarRes = await admin
       .from("avatars")
       .insert({
         user_id: user.id,
@@ -63,7 +74,7 @@ export async function POST(request: Request) {
     const avatarId = avatarRes.data.id as string;
     const storagePath = `${user.id}/${avatarId}.glb`;
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await admin.storage
       .from("characters")
       .upload(storagePath, blob, {
         contentType: "model/gltf-binary",
@@ -71,19 +82,19 @@ export async function POST(request: Request) {
       });
 
     if (uploadError) {
-      await supabase.from("avatars").delete().eq("id", avatarId);
+      await admin.from("avatars").delete().eq("id", avatarId);
       return NextResponse.json(
         { error: uploadError.message ?? "Failed to upload" },
         { status: 500 }
       );
     }
 
-    await supabase
+    await admin
       .from("avatars")
       .update({ storage_path: storagePath, updated_at: new Date().toISOString() })
       .eq("id", avatarId);
 
-    const { data: signed } = await supabase.storage
+    const { data: signed } = await admin.storage
       .from("characters")
       .createSignedUrl(storagePath, 3600);
 
