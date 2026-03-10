@@ -64,10 +64,10 @@ export function MascotViewer({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.enableZoom = false;
-    controls.enablePan = false;
-    controls.minPolarAngle = Math.PI * 0.25;
-    controls.maxPolarAngle = Math.PI * 0.75;
+    controls.enableZoom = true;
+    controls.enablePan = true;
+    controls.minPolarAngle = 0;
+    controls.maxPolarAngle = Math.PI;
     controls.autoRotate = !reducedMotion;
     controls.autoRotateSpeed = 1.2;
 

@@ -43,14 +43,42 @@ export function NavAuthLinks({ onLinkClick, variant = "desktop" }: NavAuthLinksP
   }
 
   if (user) {
+    const avatarUrl =
+      (user.user_metadata?.avatar_url as string | undefined) ??
+      (user.user_metadata?.picture as string | undefined);
+
     return (
       <>
         <Link
-          href="/account"
+          href="/character-creation"
           className="text-gray-400 transition-colors hover:text-white"
           onClick={onLinkClick}
         >
-          Account
+          Create
+        </Link>
+        <Link
+          href="/characters"
+          className="text-gray-400 transition-colors hover:text-white"
+          onClick={onLinkClick}
+        >
+          My Characters
+        </Link>
+        <Link
+          href="/account"
+          className="flex items-center gap-2 text-gray-400 transition-colors hover:text-white"
+          onClick={onLinkClick}
+        >
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              className="h-8 w-8 rounded-full border-2 border-white/10 object-cover"
+              width={32}
+              height={32}
+              referrerPolicy="no-referrer"
+            />
+          ) : null}
+          <span>Account</span>
         </Link>
         <button
           type="button"

@@ -19,6 +19,14 @@ export default async function AccountPage() {
         </div>
 
         <Link
+          href="/characters"
+          className="block rounded-2xl border border-white/10 bg-brand-dark-card/80 p-6 text-brand-cyan hover:text-white"
+        >
+          <h2 className="font-display text-lg font-semibold">My Characters</h2>
+          <p className="mt-1 text-sm text-gray-400">View and manage your saved characters</p>
+        </Link>
+
+        <Link
           href="/"
           className="inline-flex items-center gap-2 text-brand-cyan hover:text-white"
         >
