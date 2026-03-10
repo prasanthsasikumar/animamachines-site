@@ -100,6 +100,7 @@ export async function createImageTo3D(
   imageUrl: string,
   options?: {
     texture_prompt?: string;
+    texture_image_url?: string;
     pose_mode?: string;
     should_texture?: boolean;
   }
@@ -108,6 +109,7 @@ export async function createImageTo3D(
     image_url: imageUrl,
     should_texture: options?.should_texture ?? true,
     texture_prompt: options?.texture_prompt,
+    texture_image_url: options?.texture_image_url ?? imageUrl,
     pose_mode: options?.pose_mode ?? "t-pose",
     ai_model: "meshy-5",
   };
@@ -141,6 +143,56 @@ export async function getImageTo3DStatus(
     }
   );
   return handleResponse<ImageTo3DTaskResponse>(res);
+}
+
+export interface ImageToImageCreateResult {
+  result: string;
+}
+
+export async function createImageToImage(
+  apiKey: string,
+  input: {
+    prompt: string;
+    reference_image_urls: string[];
+    ai_model?: "nano-banana" | "nano-banana-pro";
+    generate_multi_view?: boolean;
+  }
+): Promise<string> {
+  const body = {
+    ai_model: input.ai_model ?? "nano-banana",
+    prompt: input.prompt,
+    reference_image_urls: input.reference_image_urls,
+    generate_multi_view: input.generate_multi_view ?? false,
+  };
+
+  const res = await fetch(`${MESHY_BASE}/openapi/v1/image-to-image`, {
+    method: "POST",
+    headers: getAuthHeaders(apiKey),
+    body: JSON.stringify(body),
+  });
+  const data = await handleResponse<ImageToImageCreateResult>(res);
+  return data.result;
+}
+
+export interface ImageToImageTaskResponse {
+  id: string;
+  status: string;
+  progress: number;
+  image_urls?: string[];
+  task_error?: { message: string };
+}
+
+export async function getImageToImageStatus(
+  apiKey: string,
+  taskId: string
+): Promise<ImageToImageTaskResponse> {
+  const res = await fetch(
+    `${MESHY_BASE}/openapi/v1/image-to-image/${encodeURIComponent(taskId)}`,
+    {
+      headers: getAuthHeaders(apiKey),
+    }
+  );
+  return handleResponse<ImageToImageTaskResponse>(res);
 }
 
 export interface RigCreateResult {

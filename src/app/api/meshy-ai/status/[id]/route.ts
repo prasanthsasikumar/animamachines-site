@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   getTextTo3DStatus,
   getImageTo3DStatus,
+  getImageToImageStatus,
   getRigStatus,
   type MeshyApiError,
 } from "@/meshy-ai/client";
@@ -18,7 +19,7 @@ async function requireAuth() {
   return user;
 }
 
-type TaskType = "text-to-3d" | "image-to-3d" | "rig";
+type TaskType = "text-to-3d" | "image-to-3d" | "image-to-image" | "rig";
 
 export async function GET(
   request: Request,
@@ -29,6 +30,8 @@ export async function GET(
   const type: TaskType =
     typeParam === "rig"
       ? "rig"
+      : typeParam === "image-to-image"
+        ? "image-to-image"
       : typeParam === "image-to-3d"
         ? "image-to-3d"
         : "text-to-3d";
@@ -68,6 +71,16 @@ export async function GET(
         status: task.status,
         progress: task.progress,
         glb_url: task.model_urls?.glb,
+        task_error: task.task_error,
+      });
+    }
+    if (type === "image-to-image") {
+      const task = await getImageToImageStatus(apiKey, id);
+      return NextResponse.json({
+        id: task.id,
+        status: task.status,
+        progress: task.progress,
+        image_url: task.image_urls?.[0],
         task_error: task.task_error,
       });
     }

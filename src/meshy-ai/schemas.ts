@@ -24,6 +24,17 @@ export const imageTo3DSchema = z.object({
 
 export type ImageTo3DInput = z.infer<typeof imageTo3DSchema>;
 
+export const imageToImageSchema = z.object({
+  prompt: z.string().min(1, "Prompt is required").max(2000),
+  reference_image_url: z.string().min(1, "Reference image is required"),
+  ai_model: z
+    .union([z.literal("nano-banana"), z.literal("nano-banana-pro")])
+    .optional()
+    .default("nano-banana"),
+});
+
+export type ImageToImageInput = z.infer<typeof imageToImageSchema>;
+
 export const rigCharacterSchema = z
   .object({
     model_url: z.string().url().optional(),

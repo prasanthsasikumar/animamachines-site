@@ -37,10 +37,7 @@ export async function POST(request: Request) {
 
     const { model_url, name } = parsed.data;
 
-    const base =
-      process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    const base = new URL(request.url).origin;
     const fullUrl = model_url.startsWith("http")
       ? model_url
       : `${base}${model_url.startsWith("/") ? "" : "/"}${model_url}`;

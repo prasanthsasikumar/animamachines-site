@@ -10,12 +10,12 @@ function proxyUrl(meshyGlbUrl: string | undefined): string | undefined {
   return `/api/meshy-ai/proxy?url=${encodeURIComponent(meshyGlbUrl)}`;
 }
 
-type TaskType = "text-to-3d" | "image-to-3d" | "rig";
+type TaskType = "text-to-3d" | "image-to-3d" | "image-to-image" | "rig";
 
 async function pollStatus(
   taskId: string,
   type: TaskType
-): Promise<{ status: string; glb_url?: string }> {
+): Promise<{ status: string; glb_url?: string; image_url?: string; progress?: number }> {
   const url = `/api/meshy-ai/status/${encodeURIComponent(taskId)}?type=${type}`;
   const res = await fetch(url);
   const data = await res.json().catch(() => ({}));
@@ -23,6 +23,8 @@ async function pollStatus(
   return {
     status: data.status,
     glb_url: data.glb_url,
+    image_url: data.image_url,
+    progress: data.progress,
   };
 }
 
@@ -33,13 +35,11 @@ async function pollUntilSucceeded(
 ): Promise<string | undefined> {
   for (let i = 0; i < 120; i++) {
     const result = await pollStatus(taskId, type);
-    if (result.status === "SUCCEEDED") return result.glb_url;
+    if (result.status === "SUCCEEDED") return result.glb_url ?? result.image_url;
     if (result.status === "FAILED" || result.status === "CANCELED") {
       throw new Error("Task failed");
     }
-    const res = await fetch(`/api/meshy-ai/status/${taskId}?type=${type}`);
-    const data = await res.json().catch(() => ({}));
-    onProgress?.(data.progress ?? 0);
+    onProgress?.(result.progress ?? 0);
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
   throw new Error("Task timed out");
@@ -78,10 +78,10 @@ export function CharacterCreationForm() {
   const [previewGlbUrl, setPreviewGlbUrl] = useState<string | null>(null);
   const [texturedGlbUrl, setTexturedGlbUrl] = useState<string | null>(null);
   const [riggedGlbUrl, setRiggedGlbUrl] = useState<string | null>(null);
+  const [rawFinalGlbUrl, setRawFinalGlbUrl] = useState<string | null>(null);
+  const [avatarId, setAvatarId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [saveName, setSaveName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -92,11 +92,38 @@ export function CharacterCreationForm() {
 
   const sourceTaskIdForRig = imageTaskId ?? refinedTaskId ?? previewTaskId;
 
+  async function initAvatar(): Promise<string> {
+    if (avatarId) return avatarId;
+    const res = await fetch("/api/characters/init", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: saveName.trim() || "Character" }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error ?? "Failed to init");
+    setAvatarId(data.avatar_id);
+    return data.avatar_id as string;
+  }
+
+  async function saveAsset(kind: string, sourceUrl: string) {
+    const id = await initAvatar();
+    await fetch("/api/characters/asset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        avatar_id: id,
+        kind,
+        source_url: sourceUrl,
+      }),
+    });
+  }
+
   async function handleCreateFromText() {
     if (!prompt.trim()) return;
     setError(null);
     setStep("creating");
     try {
+      await initAvatar();
       const res = await fetch("/api/meshy-ai/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -113,6 +140,7 @@ export function CharacterCreationForm() {
         setProgress
       );
       setPreviewGlbUrl(proxyUrl(glbUrl) ?? null);
+      if (glbUrl) void saveAsset("preview_glb", glbUrl);
       setStep("preview");
 
       setStep("texturing");
@@ -135,6 +163,7 @@ export function CharacterCreationForm() {
         setProgress
       );
       setTexturedGlbUrl(proxyUrl(texturedGlb) ?? null);
+      if (texturedGlb) void saveAsset("textured_glb", texturedGlb);
       setStep("textured");
 
       setStep("rigging");
@@ -149,7 +178,9 @@ export function CharacterCreationForm() {
       const rigId = rigData.task_id as string;
       setRigTaskId(rigId);
       const riggedGlb = await pollUntilSucceeded(rigId, "rig", setProgress);
+      setRawFinalGlbUrl(riggedGlb ?? null);
       setRiggedGlbUrl(proxyUrl(riggedGlb) ?? null);
+      if (riggedGlb) void saveAsset("rigged_glb", riggedGlb);
       setStep("rigged");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -162,26 +193,49 @@ export function CharacterCreationForm() {
     setError(null);
     setStep("creating");
     try {
+      const id = await initAvatar();
+      void saveAsset("input_photo", imageDataUri);
+
+      // 1) Image-to-Image: generate full-body reference photo
+      const fullBodyPrompt =
+        "Full-body realistic photo of the same person in the reference image, standing straight facing the camera, neutral expression, arms slightly away from the body, legs shoulder-width apart, symmetrical posture for character rigging, natural proportions, wearing simple casual clothing, studio lighting, plain neutral background, ultra realistic, photorealistic, high detail, full body visible from head to feet.";
+
+      const i2iRes = await fetch("/api/meshy-ai/image-to-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: fullBodyPrompt,
+          reference_image_url: imageDataUri,
+        }),
+      });
+      const i2iData = await i2iRes.json().catch(() => ({}));
+      if (!i2iRes.ok) throw new Error(i2iData?.error ?? "Image transform failed");
+
+      const i2iTaskId = i2iData.task_id as string;
+      const fullBodyImageUrl = await pollUntilSucceeded(
+        i2iTaskId,
+        "image-to-image" as TaskType,
+        setProgress
+      );
+      if (!fullBodyImageUrl) throw new Error("No image output");
+      void saveAsset("fullbody_photo", fullBodyImageUrl);
+
+      // 2) Image-to-3D: use full-body image as both geometry + texture guide
       const res = await fetch("/api/meshy-ai/image-to-3d", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          image_url: imageDataUri,
-          texture_prompt:
-            "Create a complete full-body humanoid character with head, torso, arms, hands, legs and feet that looks like the person in this photo. The character must include all limbs.",
+          image_url: fullBodyImageUrl,
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error ?? "Create failed");
+      if (!res.ok) throw new Error(data?.error ?? "3D create failed");
 
       const taskId = data.task_id as string;
       setImageTaskId(taskId);
-      const glbUrl = await pollUntilSucceeded(
-        taskId,
-        "image-to-3d",
-        setProgress
-      );
+      const glbUrl = await pollUntilSucceeded(taskId, "image-to-3d", setProgress);
       setTexturedGlbUrl(proxyUrl(glbUrl) ?? null);
+      if (glbUrl) void saveAsset("textured_glb", glbUrl);
       setStep("textured");
 
       setStep("rigging");
@@ -196,7 +250,9 @@ export function CharacterCreationForm() {
       const rigId = rigData.task_id as string;
       setRigTaskId(rigId);
       const riggedGlb = await pollUntilSucceeded(rigId, "rig", setProgress);
+      setRawFinalGlbUrl(riggedGlb ?? null);
       setRiggedGlbUrl(proxyUrl(riggedGlb) ?? null);
+      if (riggedGlb) void saveAsset("rigged_glb", riggedGlb);
       setStep("rigged");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -222,30 +278,6 @@ export function CharacterCreationForm() {
       URL.revokeObjectURL(a.href);
     } catch {
       setError("Download failed");
-    }
-  }
-
-  async function handleSave() {
-    const url = currentModelUrl;
-    if (!url) return;
-    setError(null);
-    setSaving(true);
-    try {
-      const res = await fetch("/api/characters/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model_url: url,
-          name: saveName.trim() || "Character",
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error ?? "Save failed");
-      setSaved(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -533,14 +565,12 @@ export function CharacterCreationForm() {
                 placeholder="Name (optional)"
                 className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-gray-500 focus:border-brand-purple/50 focus:outline-none focus:ring-2 focus:ring-brand-purple/20"
               />
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving || saved}
-                className="rounded-xl border border-brand-purple/50 bg-brand-purple/10 px-4 py-2.5 text-sm font-medium text-brand-purple hover:bg-brand-purple/20 disabled:opacity-50"
+              <a
+                href="/characters"
+                className="rounded-xl border border-brand-purple/50 bg-brand-purple/10 px-4 py-2.5 text-sm font-medium text-brand-purple hover:bg-brand-purple/20"
               >
-                {saving ? "Saving…" : saved ? "Saved!" : "Save"}
-              </button>
+                My Characters
+              </a>
               <button
                 type="button"
                 onClick={handleDownload}
@@ -549,13 +579,9 @@ export function CharacterCreationForm() {
                 Download GLB
               </button>
             </div>
-            {saved && (
-              <p className="text-xs text-brand-cyan">
-                <a href="/characters" className="underline hover:text-white">
-                  View your characters
-                </a>
-              </p>
-            )}
+            <p className="text-xs text-gray-500">
+              Auto-saved to your library as each asset is generated.
+            </p>
           </div>
         )}
       </div>

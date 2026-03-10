@@ -216,7 +216,7 @@ export function MascotViewer({
           {status === "loading" ? (
             <>
               <div className="mb-3 h-8 w-8 animate-spin rounded-full border-2 border-brand-purple border-t-transparent" />
-              <p className="text-xs text-gray-500">Loading mascot…</p>
+              <p className="text-xs text-gray-500">Loading model…</p>
             </>
           ) : (
             <p className="px-4 text-center text-xs text-red-400">

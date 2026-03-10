@@ -44,9 +44,10 @@ export async function POST(request: Request) {
     const { image_url, texture_prompt } = parsed.data;
 
     const taskId = await createImageTo3D(apiKey, image_url, {
-      texture_prompt:
-        texture_prompt ??
-        "Create a complete full-body humanoid character with head, torso, arms, hands, legs and feet that looks like the person in this photo. The character must include all limbs.",
+      // Important: If both texture_prompt and texture_image_url are provided, Meshy will
+      // default to text prompting for texture. We prefer the photo to preserve colors.
+      texture_prompt,
+      texture_image_url: image_url,
       pose_mode: "t-pose",
       should_texture: true,
     });
