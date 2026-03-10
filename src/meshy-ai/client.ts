@@ -36,7 +36,8 @@ export async function createPreview(
     mode: "preview",
     prompt,
     pose_mode: options?.pose_mode || "",
-    ai_model: "meshy-5",
+    ai_model: "meshy-6",
+    model_type: "lowpoly",
   };
   const res = await fetch(`${MESHY_BASE}/openapi/v2/text-to-3d`, {
     method: "POST",
@@ -57,7 +58,7 @@ export async function createRefine(
     preview_task_id: previewTaskId,
     texture_prompt: options?.texture_prompt,
     enable_pbr: options?.enable_pbr ?? false,
-    ai_model: "meshy-5",
+    ai_model: "meshy-6",
   };
   const res = await fetch(`${MESHY_BASE}/openapi/v2/text-to-3d`, {
     method: "POST",
@@ -111,7 +112,8 @@ export async function createImageTo3D(
     texture_prompt: options?.texture_prompt,
     texture_image_url: options?.texture_image_url ?? imageUrl,
     pose_mode: options?.pose_mode ?? "t-pose",
-    ai_model: "meshy-5",
+    ai_model: "meshy-6",
+    model_type: "lowpoly",
   };
   const res = await fetch(`${MESHY_BASE}/openapi/v1/image-to-3d`, {
     method: "POST",
@@ -243,6 +245,54 @@ export async function getRigStatus(
     }
   );
   return handleResponse<RigTaskResponse>(res);
+}
+
+// Animation API
+
+export interface AnimationCreateResult {
+  result: string;
+}
+
+export async function createAnimation(
+  apiKey: string,
+  input: { rig_task_id: string; action_id: number }
+): Promise<string> {
+  const body = {
+    rig_task_id: input.rig_task_id,
+    action_id: input.action_id,
+  };
+
+  const res = await fetch(`${MESHY_BASE}/openapi/v1/animations`, {
+    method: "POST",
+    headers: getAuthHeaders(apiKey),
+    body: JSON.stringify(body),
+  });
+  const data = await handleResponse<AnimationCreateResult>(res);
+  return data.result;
+}
+
+export interface AnimationTaskResponse {
+  id: string;
+  status: string;
+  progress: number;
+  result?: {
+    animated_character_glb_url?: string;
+    animated_character_fbx_url?: string;
+  };
+  task_error?: { message: string };
+}
+
+export async function getAnimationStatus(
+  apiKey: string,
+  taskId: string
+): Promise<AnimationTaskResponse> {
+  const res = await fetch(
+    `${MESHY_BASE}/openapi/v1/animations/${encodeURIComponent(taskId)}`,
+    {
+      headers: getAuthHeaders(apiKey),
+    }
+  );
+  return handleResponse<AnimationTaskResponse>(res);
 }
 
 const POLL_INTERVAL_MS = 2000;

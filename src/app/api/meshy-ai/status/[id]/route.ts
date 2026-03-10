@@ -4,6 +4,7 @@ import {
   getImageTo3DStatus,
   getImageToImageStatus,
   getRigStatus,
+  getAnimationStatus,
   type MeshyApiError,
 } from "@/meshy-ai/client";
 import { NextResponse } from "next/server";
@@ -19,7 +20,7 @@ async function requireAuth() {
   return user;
 }
 
-type TaskType = "text-to-3d" | "image-to-3d" | "image-to-image" | "rig";
+type TaskType = "text-to-3d" | "image-to-3d" | "image-to-image" | "rig" | "animation";
 
 export async function GET(
   request: Request,
@@ -30,6 +31,8 @@ export async function GET(
   const type: TaskType =
     typeParam === "rig"
       ? "rig"
+      : typeParam === "animation"
+        ? "animation"
       : typeParam === "image-to-image"
         ? "image-to-image"
       : typeParam === "image-to-3d"
@@ -61,6 +64,16 @@ export async function GET(
         status: task.status,
         progress: task.progress,
         glb_url: task.result?.rigged_character_glb_url,
+        task_error: task.task_error,
+      });
+    }
+    if (type === "animation") {
+      const task = await getAnimationStatus(apiKey, id);
+      return NextResponse.json({
+        id: task.id,
+        status: task.status,
+        progress: task.progress,
+        glb_url: task.result?.animated_character_glb_url,
         task_error: task.task_error,
       });
     }

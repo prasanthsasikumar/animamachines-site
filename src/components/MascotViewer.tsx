@@ -8,6 +8,8 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 type MascotViewerProps = {
   className?: string;
   modelUrl?: string;
+  // Optional: if provided, use this GLB instead of modelUrl (e.g. a pre-animated Meshy model).
+  animationUrl?: string;
 };
 
 function prefersReducedMotion(): boolean {
@@ -18,6 +20,7 @@ function prefersReducedMotion(): boolean {
 export function MascotViewer({
   className,
   modelUrl = "/mascot.glb",
+  animationUrl,
 }: MascotViewerProps) {
   const viewerId = useId();
   const viewerRef = useRef<HTMLDivElement | null>(null);
@@ -136,6 +139,8 @@ export function MascotViewer({
     };
 
     const loader = new GLTFLoader();
+
+    // Always load the base model to display.
     loader.load(
       modelUrl,
       (gltf) => {
@@ -158,9 +163,36 @@ export function MascotViewer({
         resizeRenderer();
         setStatus("ready");
 
-        clips = gltf.animations ?? [];
-        if (clips.length > 0 && !reducedMotion) {
-          mixer = new THREE.AnimationMixer(model);
+        const hasEmbeddedClips = (gltf.animations?.length ?? 0) > 0;
+
+        const ensureMixer = () => {
+          if (!mixer) {
+            mixer = new THREE.AnimationMixer(model);
+          }
+        };
+
+        if (animationUrl) {
+          // Load external animation GLB and apply its clips to this model.
+          const animLoader = new GLTFLoader();
+          animLoader.load(
+            animationUrl,
+            (animGltf) => {
+              const animClips = animGltf.animations ?? [];
+              if (!animClips.length) return;
+              clips = animClips;
+              if (!reducedMotion) {
+                ensureMixer();
+                playClip(0);
+              }
+            },
+            undefined,
+            (err) => {
+              console.error("Animation GLB load error:", err);
+            },
+          );
+        } else if (hasEmbeddedClips && !reducedMotion) {
+          clips = gltf.animations ?? [];
+          ensureMixer();
           playClip(0);
           interval = window.setInterval(() => {
             const next = (Math.floor(msgIndex) + 1) % clips.length;
@@ -205,7 +237,7 @@ export function MascotViewer({
       controls.dispose();
       renderer.dispose();
     };
-  }, [modelUrl, viewerId]);
+  }, [modelUrl, animationUrl, viewerId]);
 
   return (
     <div className={className} ref={viewerRef} data-mascot-viewer={viewerId}>

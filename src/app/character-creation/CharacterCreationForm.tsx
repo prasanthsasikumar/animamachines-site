@@ -10,7 +10,7 @@ function proxyUrl(meshyGlbUrl: string | undefined): string | undefined {
   return `/api/meshy-ai/proxy?url=${encodeURIComponent(meshyGlbUrl)}`;
 }
 
-type TaskType = "text-to-3d" | "image-to-3d" | "image-to-image" | "rig";
+type TaskType = "text-to-3d" | "image-to-3d" | "image-to-image" | "rig" | "animation";
 
 async function pollStatus(
   taskId: string,
@@ -31,7 +31,6 @@ async function pollStatus(
 async function pollUntilSucceeded(
   taskId: string,
   type: TaskType,
-  onProgress?: (progress: number) => void
 ): Promise<string | undefined> {
   for (let i = 0; i < 120; i++) {
     const result = await pollStatus(taskId, type);
@@ -39,7 +38,6 @@ async function pollUntilSucceeded(
     if (result.status === "FAILED" || result.status === "CANCELED") {
       throw new Error("Task failed");
     }
-    onProgress?.(result.progress ?? 0);
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
   throw new Error("Task timed out");
@@ -80,8 +78,14 @@ export function CharacterCreationForm() {
   const [texturedGlbUrl, setTexturedGlbUrl] = useState<string | null>(null);
   const [riggedGlbUrl, setRiggedGlbUrl] = useState<string | null>(null);
   const [rawFinalGlbUrl, setRawFinalGlbUrl] = useState<string | null>(null);
+  const [animatedGlbUrl, setAnimatedGlbUrl] = useState<string | null>(null);
+  const [externalAnimationUrl, setExternalAnimationUrl] = useState<string | null>(null);
+  const [selectedAnimation, setSelectedAnimation] = useState<"idle" | "walk" | "dance">("idle");
+  const [isAnimating, setIsAnimating] = useState(false);
   const [avatarId, setAvatarId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [workDurationMs, setWorkDurationMs] = useState<number | null>(null);
+  const [workStartAt, setWorkStartAt] = useState<number | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [awaitingPhotoApproval, setAwaitingPhotoApproval] = useState(false);
@@ -90,7 +94,7 @@ export function CharacterCreationForm() {
   const streamRef = useRef<MediaStream | null>(null);
 
   const currentModelUrl =
-    riggedGlbUrl ?? texturedGlbUrl ?? previewGlbUrl ?? undefined;
+    animatedGlbUrl ?? riggedGlbUrl ?? texturedGlbUrl ?? previewGlbUrl ?? undefined;
 
   const sourceTaskIdForRig = imageTaskId ?? refinedTaskId ?? previewTaskId;
 
@@ -120,10 +124,23 @@ export function CharacterCreationForm() {
     });
   }
 
+  async function saveRigTaskId(rigTaskId: string) {
+    const id = await initAvatar();
+    await fetch("/api/characters/rig-task", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        avatar_id: id,
+        rig_task_id: rigTaskId,
+      }),
+    });
+  }
+
   async function handleCreateFromText() {
     if (!prompt.trim()) return;
     setError(null);
     setStep("creating");
+    startWork(3 * 60 * 1000);
     try {
       await initAvatar();
       const res = await fetch("/api/meshy-ai/create", {
@@ -138,15 +155,14 @@ export function CharacterCreationForm() {
       setPreviewTaskId(taskId);
       const glbUrl = await pollUntilSucceeded(
         taskId,
-        "text-to-3d",
-        setProgress
+        "text-to-3d"
       );
       setPreviewGlbUrl(proxyUrl(glbUrl) ?? null);
       if (glbUrl) void saveAsset("preview_glb", glbUrl);
       setStep("preview");
 
       setStep("texturing");
-      setProgress(0);
+      startWork(3 * 60 * 1000);
       const textureRes = await fetch("/api/meshy-ai/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -161,15 +177,14 @@ export function CharacterCreationForm() {
       setRefinedTaskId(textureTaskId);
       const texturedGlb = await pollUntilSucceeded(
         textureTaskId,
-        "text-to-3d",
-        setProgress
+        "text-to-3d"
       );
       setTexturedGlbUrl(proxyUrl(texturedGlb) ?? null);
       if (texturedGlb) void saveAsset("textured_glb", texturedGlb);
       setStep("textured");
 
       setStep("rigging");
-      setProgress(0);
+      startWork(3 * 60 * 1000);
       const rigRes = await fetch("/api/meshy-ai/rig", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -179,7 +194,8 @@ export function CharacterCreationForm() {
       if (!rigRes.ok) throw new Error(rigData?.error ?? "Rig failed");
       const rigId = rigData.task_id as string;
       setRigTaskId(rigId);
-      const riggedGlb = await pollUntilSucceeded(rigId, "rig", setProgress);
+      void saveRigTaskId(rigId);
+      const riggedGlb = await pollUntilSucceeded(rigId, "rig");
       setRawFinalGlbUrl(riggedGlb ?? null);
       setRiggedGlbUrl(proxyUrl(riggedGlb) ?? null);
       if (riggedGlb) void saveAsset("rigged_glb", riggedGlb);
@@ -194,7 +210,7 @@ export function CharacterCreationForm() {
     if (!imageDataUri) return;
     setError(null);
     setStep("creating");
-    setProgress(0);
+    startWork(30 * 1000);
     setFullBodyImageUrl(null);
     setAwaitingPhotoApproval(false);
     try {
@@ -219,13 +235,14 @@ export function CharacterCreationForm() {
       const i2iTaskId = i2iData.task_id as string;
       const fullBody = await pollUntilSucceeded(
         i2iTaskId,
-        "image-to-image" as TaskType,
-        setProgress
+        "image-to-image" as TaskType
       );
       if (!fullBody) throw new Error("No image output");
       setFullBodyImageUrl(fullBody);
       void saveAsset("fullbody_photo", fullBody);
       setStep("idle");
+      setWorkDurationMs(null);
+      setWorkStartAt(null);
       setProgress(0);
       setAwaitingPhotoApproval(true);
     } catch (e) {
@@ -239,7 +256,7 @@ export function CharacterCreationForm() {
     setError(null);
     setAwaitingPhotoApproval(false);
     setStep("creating");
-    setProgress(0);
+    startWork(3 * 60 * 1000);
     try {
       await initAvatar();
 
@@ -256,13 +273,13 @@ export function CharacterCreationForm() {
 
       const taskId = data.task_id as string;
       setImageTaskId(taskId);
-      const glbUrl = await pollUntilSucceeded(taskId, "image-to-3d", setProgress);
+      const glbUrl = await pollUntilSucceeded(taskId, "image-to-3d");
       setTexturedGlbUrl(proxyUrl(glbUrl) ?? null);
       if (glbUrl) void saveAsset("textured_glb", glbUrl);
       setStep("textured");
 
       setStep("rigging");
-      setProgress(0);
+      startWork(3 * 60 * 1000);
       const rigRes = await fetch("/api/meshy-ai/rig", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -272,7 +289,8 @@ export function CharacterCreationForm() {
       if (!rigRes.ok) throw new Error(rigData?.error ?? "Rig failed");
       const rigId = rigData.task_id as string;
       setRigTaskId(rigId);
-      const riggedGlb = await pollUntilSucceeded(rigId, "rig", setProgress);
+      void saveRigTaskId(rigId);
+      const riggedGlb = await pollUntilSucceeded(rigId, "rig");
       setRawFinalGlbUrl(riggedGlb ?? null);
       setRiggedGlbUrl(proxyUrl(riggedGlb) ?? null);
       if (riggedGlb) void saveAsset("rigged_glb", riggedGlb);
@@ -307,6 +325,57 @@ export function CharacterCreationForm() {
       URL.revokeObjectURL(a.href);
     } catch {
       setError("Download failed");
+    }
+  }
+
+  async function handleApplyAnimation() {
+    // For Mixamo-style animations we only need the rigged model, not rigTaskId.
+    if (selectedAnimation === "walk") {
+      setExternalAnimationUrl("/animations/walk.glb");
+      setIsAnimating(false);
+      setWorkDurationMs(null);
+      setWorkStartAt(null);
+      setProgress(0);
+      return;
+    }
+
+    if (!rigTaskId) return;
+    setError(null);
+    setIsAnimating(true);
+    startWork(60 * 1000);
+    try {
+      const actionId =
+        selectedAnimation === "idle"
+          ? 10 // Idle_01
+          : 591; // Hip_Hop_Dance for "dance"
+
+      const res = await fetch("/api/meshy-ai/animate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rig_task_id: rigTaskId,
+          action_id: actionId,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error ?? "Animation create failed");
+
+      const taskId = data.task_id as string;
+      const animatedUrl = await pollUntilSucceeded(
+        taskId,
+        "animation" as TaskType,
+      );
+      if (animatedUrl) {
+        setAnimatedGlbUrl(proxyUrl(animatedUrl) ?? null);
+        void saveAsset(`animated_${selectedAnimation}_glb`, animatedUrl);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to apply animation");
+    } finally {
+      setIsAnimating(false);
+      setWorkDurationMs(null);
+      setWorkStartAt(null);
+      setProgress(0);
     }
   }
 
@@ -377,6 +446,33 @@ export function CharacterCreationForm() {
     step === "creating" ||
     step === "texturing" ||
     step === "rigging";
+
+  const canAnimate = !!rigTaskId && step === "rigged" && !isWorking && !isAnimating;
+
+  function startWork(durationMs: number) {
+    setWorkDurationMs(durationMs);
+    setWorkStartAt(Date.now());
+    setProgress(0);
+  }
+
+  useEffect(() => {
+    if ((!isWorking && !isAnimating) || !workDurationMs || !workStartAt) return;
+
+    let frame: number;
+    const tick = () => {
+      const elapsed = Date.now() - workStartAt;
+      const pct = Math.min(99, (elapsed / workDurationMs) * 100);
+      setProgress(pct);
+      if ((isWorking || isAnimating) && elapsed < workDurationMs) {
+        frame = window.requestAnimationFrame(tick);
+      }
+    };
+
+    frame = window.requestAnimationFrame(tick);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [isWorking, isAnimating, workDurationMs, workStartAt]);
 
   return (
     <div className="grid gap-8 lg:grid-cols-2">
@@ -570,7 +666,7 @@ export function CharacterCreationForm() {
           )}
         </div>
 
-        {isWorking && (
+        {(isWorking || isAnimating) && (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
               <div
@@ -583,11 +679,15 @@ export function CharacterCreationForm() {
               />
             </div>
             <p className="mt-2 text-xs text-gray-500">
-              {step === "creating"
-                ? "Generating model… (typically 2–5 min)"
-                : step === "texturing"
-                  ? "Applying texture… (typically 1–3 min)"
-                  : "Rigging… (typically 1–2 min)"}
+              {isAnimating
+                ? "Applying animation… (typically under 1 minute)"
+                : step === "creating" && awaitingPhotoApproval
+                  ? "Generating full-body photo from your image… (about 30 seconds)"
+                  : step === "creating"
+                    ? "Generating 3D model… (up to ~3 minutes)"
+                    : step === "texturing"
+                      ? "Applying texture… (up to ~3 minutes)"
+                      : "Rigging character… (up to ~3 minutes)"}
             </p>
           </div>
         )}
@@ -605,6 +705,7 @@ export function CharacterCreationForm() {
             <MascotViewer
               className="absolute inset-0 h-full w-full"
               modelUrl={currentModelUrl}
+              animationUrl={externalAnimationUrl ?? undefined}
             />
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-500">
@@ -618,8 +719,8 @@ export function CharacterCreationForm() {
           )}
         </div>
         {currentModelUrl && (
-          <div className="mt-3 space-y-2">
-            <div className="flex gap-2">
+          <div className="mt-3 space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <input
                 type="text"
                 value={saveName ?? ""}
@@ -641,6 +742,35 @@ export function CharacterCreationForm() {
                 Download GLB
               </button>
             </div>
+
+            <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-gray-300 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] uppercase tracking-wide text-gray-500">
+                  Animation
+                </span>
+                <select
+                  value={selectedAnimation}
+                  onChange={(e) =>
+                    setSelectedAnimation(e.target.value as "idle" | "walk" | "dance")
+                  }
+                  className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 text-xs text-gray-100 focus:border-brand-purple/50 focus:outline-none focus:ring-1 focus:ring-brand-purple/40"
+                  disabled={!canAnimate}
+                >
+                  <option value="idle">Idle</option>
+                  <option value="walk">Walk</option>
+                  <option value="dance">Dance</option>
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={handleApplyAnimation}
+                disabled={!canAnimate}
+                className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-brand-purple to-brand-cyan px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              >
+                {isAnimating ? "Applying animation…" : "Apply animation"}
+              </button>
+            </div>
+
             <p className="text-xs text-gray-500">
               Auto-saved to your library as each asset is generated.
             </p>

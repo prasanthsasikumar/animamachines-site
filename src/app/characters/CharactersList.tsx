@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { MascotViewer } from "@/components/MascotViewer";
 
 type Character = {
@@ -51,7 +52,10 @@ function CharacterCard({ character }: { character: Character }) {
   }, [character.storage_path]);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-brand-dark-card/80">
+    <Link
+      href={`/characters/${character.id}`}
+      className="block overflow-hidden rounded-2xl border border-white/10 bg-brand-dark-card/80 transition-transform hover:-translate-y-1 hover:border-brand-cyan/40"
+    >
       <div className="relative aspect-square min-h-[200px] bg-black/30">
         {signedUrl ? (
           <MascotViewer
@@ -75,7 +79,10 @@ function CharacterCard({ character }: { character: Character }) {
         <p className="mt-1 text-xs text-gray-500">
           {new Date(character.created_at).toLocaleDateString()}
         </p>
+        <p className="mt-2 text-[11px] font-medium text-brand-cyan">
+          Click to view larger & download
+        </p>
       </div>
-    </div>
+    </Link>
   );
 }
