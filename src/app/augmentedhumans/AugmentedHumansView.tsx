@@ -70,6 +70,8 @@ export function AugmentedHumansView() {
   const [touchedSleep, setTouchedSleep] = useState(false);
   const [touchedArousal, setTouchedArousal] = useState(false);
   const [touchedValence, setTouchedValence] = useState(false);
+  const [gender, setGender] = useState<string>("");
+  const [ageBracket, setAgeBracket] = useState<string>("");
   const [step, setStep] = useState<
     "idle" | "captured" | "generating" | "done" | "error"
   >("idle");
@@ -156,6 +158,8 @@ export function AugmentedHumansView() {
           sleep_score: sleepScore,
           arousal,
           valence,
+          gender,
+          age_bracket: ageBracket,
           client_timestamp: new Date().toISOString(),
           client_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
@@ -261,6 +265,8 @@ export function AugmentedHumansView() {
     setTouchedSleep(false);
     setTouchedArousal(false);
     setTouchedValence(false);
+    setGender("");
+    setAgeBracket("");
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -276,7 +282,7 @@ export function AugmentedHumansView() {
   }
 
   const canProceed =
-    !!capturedUri && touchedSleep && touchedArousal && touchedValence && step !== "generating";
+    !!capturedUri && touchedSleep && touchedArousal && touchedValence && !!gender && !!ageBracket && step !== "generating";
 
   if (error && step === "error") {
     return (
@@ -372,8 +378,43 @@ export function AugmentedHumansView() {
 
               <div className="mt-6 space-y-4">
                 <p className="text-xs text-gray-500">
-                  Please interact with each slider at least once.
+                  Please fill in all fields below.
                 </p>
+                <div>
+                  <label className="block text-xs text-gray-500">
+                    Gender
+                  </label>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    className="mt-1 w-full appearance-none rounded-lg border border-white/20 bg-[#1a1a2e] px-3 py-2.5 text-sm text-white shadow-sm focus:border-brand-cyan focus:outline-none focus:ring-1 focus:ring-brand-cyan/30"
+                  >
+                    <option value="" disabled className="bg-[#1a1a2e] text-gray-400">Select…</option>
+                    <option value="male" className="bg-[#1a1a2e] text-white">Male</option>
+                    <option value="female" className="bg-[#1a1a2e] text-white">Female</option>
+                    <option value="non-binary" className="bg-[#1a1a2e] text-white">Non-binary</option>
+                    <option value="prefer-not-to-say" className="bg-[#1a1a2e] text-white">Prefer not to say</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500">
+                    Age bracket
+                  </label>
+                  <select
+                    value={ageBracket}
+                    onChange={(e) => setAgeBracket(e.target.value)}
+                    className="mt-1 w-full appearance-none rounded-lg border border-white/20 bg-[#1a1a2e] px-3 py-2.5 text-sm text-white shadow-sm focus:border-brand-cyan focus:outline-none focus:ring-1 focus:ring-brand-cyan/30"
+                  >
+                    <option value="" disabled className="bg-[#1a1a2e] text-gray-400">Select…</option>
+                    <option value="under-18" className="bg-[#1a1a2e] text-white">Under 18</option>
+                    <option value="18-24" className="bg-[#1a1a2e] text-white">18–24</option>
+                    <option value="25-34" className="bg-[#1a1a2e] text-white">25–34</option>
+                    <option value="35-44" className="bg-[#1a1a2e] text-white">35–44</option>
+                    <option value="45-54" className="bg-[#1a1a2e] text-white">45–54</option>
+                    <option value="55-64" className="bg-[#1a1a2e] text-white">55–64</option>
+                    <option value="65+" className="bg-[#1a1a2e] text-white">65+</option>
+                  </select>
+                </div>
                 <div>
                   <label className="block text-xs text-gray-500">
                     How did you sleep? (1–10)

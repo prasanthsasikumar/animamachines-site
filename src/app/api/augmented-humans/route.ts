@@ -8,6 +8,8 @@ const initSchema = z.object({
   sleep_score: z.number().int().min(1).max(10),
   arousal: z.number().int().min(1).max(9),
   valence: z.number().int().min(1).max(9),
+  gender: z.enum(["male", "female", "non-binary", "prefer-not-to-say"]),
+  age_bracket: z.enum(["under-18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"]),
   client_timestamp: z.string().datetime().optional(),
   client_timezone: z.string().optional(),
 });
@@ -38,6 +40,8 @@ export async function POST(request: Request) {
     sleep_score,
     arousal,
     valence,
+    gender,
+    age_bracket,
     client_timestamp,
     client_timezone,
   } = parsed.data;
@@ -77,6 +81,8 @@ export async function POST(request: Request) {
       sleep_score,
       arousal,
       valence,
+      gender,
+      age_bracket,
       client_timestamp: client_timestamp ?? now,
       client_timezone,
       user_agent: userAgent,

@@ -13,7 +13,7 @@ export default async function AugmentedHumansHistoryPage() {
   const { data: sessions } = await supabase
     .from("augmented_human_sessions")
     .select(
-      "id, sleep_score, arousal, valence, client_timestamp, capture_photo_path, animated_glb_path, created_at, config"
+      "id, sleep_score, arousal, valence, gender, age_bracket, client_timestamp, capture_photo_path, animated_glb_path, created_at, config"
     )
     .order("created_at", { ascending: false })
     .limit(50);
@@ -86,7 +86,7 @@ export default async function AugmentedHumansHistoryPage() {
                   <p className="text-xs text-gray-500">
                     {new Date(s.client_timestamp ?? s.created_at).toLocaleString()}
                   </p>
-                  <div className="flex gap-3 text-xs text-gray-400">
+                  <div className="flex flex-wrap gap-3 text-xs text-gray-400">
                     <span>
                       Sleep: <span className="text-white">{s.sleep_score}</span>
                     </span>
@@ -96,6 +96,16 @@ export default async function AugmentedHumansHistoryPage() {
                     <span>
                       Valence: <span className="text-white">{s.valence}</span>
                     </span>
+                    {s.gender && (
+                      <span>
+                        Gender: <span className="text-white capitalize">{s.gender}</span>
+                      </span>
+                    )}
+                    {s.age_bracket && (
+                      <span>
+                        Age: <span className="text-white">{s.age_bracket}</span>
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {s.animated_glb_path ? (
