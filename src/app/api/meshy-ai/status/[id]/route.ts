@@ -73,7 +73,7 @@ export async function GET(
         id: task.id,
         status: task.status,
         progress: task.progress,
-        glb_url: task.result?.animated_character_glb_url,
+        glb_url: task.result?.animation_glb_url,
         task_error: task.task_error,
       });
     }

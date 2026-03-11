@@ -276,8 +276,8 @@ export interface AnimationTaskResponse {
   status: string;
   progress: number;
   result?: {
-    animated_character_glb_url?: string;
-    animated_character_fbx_url?: string;
+    animation_glb_url?: string;
+    animation_fbx_url?: string;
   };
   task_error?: { message: string };
 }

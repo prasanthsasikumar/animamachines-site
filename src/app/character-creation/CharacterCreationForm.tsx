@@ -79,8 +79,7 @@ export function CharacterCreationForm() {
   const [riggedGlbUrl, setRiggedGlbUrl] = useState<string | null>(null);
   const [rawFinalGlbUrl, setRawFinalGlbUrl] = useState<string | null>(null);
   const [animatedGlbUrl, setAnimatedGlbUrl] = useState<string | null>(null);
-  const [externalAnimationUrl, setExternalAnimationUrl] = useState<string | null>(null);
-  const [selectedAnimation, setSelectedAnimation] = useState<"idle" | "walk" | "dance">("idle");
+  const [selectedAnimation, setSelectedAnimation] = useState<"idle" | "talk" | "dance">("idle");
   const [isAnimating, setIsAnimating] = useState(false);
   const [avatarId, setAvatarId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -136,6 +135,51 @@ export function CharacterCreationForm() {
     });
   }
 
+  async function saveCreationMetadata(
+    mode: "text" | "photo",
+    prompt?: string
+  ) {
+    const id = await initAvatar();
+    await fetch("/api/characters/metadata", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        avatar_id: id,
+        creation_mode: mode,
+        ...(prompt !== undefined && prompt !== "" && { creation_prompt: prompt }),
+      }),
+    });
+  }
+
+  async function createDefaultTalkAnimation() {
+    try {
+      const id = await initAvatar();
+      const res = await fetch("/api/characters/animate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          avatar_id: id,
+          action_id: 308, // Talk_Passionately default animation
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // Silent failure; user can still rig without default anim.
+        console.warn("Default animation create failed:", data?.error);
+        return;
+      }
+
+      const taskId = data.task_id as string;
+      const animatedUrl = await pollUntilSucceeded(taskId, "animation");
+      if (animatedUrl) {
+        setAnimatedGlbUrl(proxyUrl(animatedUrl) ?? null);
+        void saveAsset("animated_talk_glb", animatedUrl);
+      }
+    } catch (e) {
+      console.warn("Default animation error", e);
+    }
+  }
+
   async function handleCreateFromText() {
     if (!prompt.trim()) return;
     setError(null);
@@ -143,6 +187,7 @@ export function CharacterCreationForm() {
     startWork(3 * 60 * 1000);
     try {
       await initAvatar();
+      void saveCreationMetadata("text", prompt.trim());
       const res = await fetch("/api/meshy-ai/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -200,6 +245,7 @@ export function CharacterCreationForm() {
       setRiggedGlbUrl(proxyUrl(riggedGlb) ?? null);
       if (riggedGlb) void saveAsset("rigged_glb", riggedGlb);
       setStep("rigged");
+      void createDefaultTalkAnimation();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
       setStep("error");
@@ -216,10 +262,11 @@ export function CharacterCreationForm() {
     try {
       const id = await initAvatar();
       void saveAsset("input_photo", imageDataUri);
+      void saveCreationMetadata("photo");
 
       // 1) Image-to-Image: generate full-body reference photo
       const fullBodyPrompt =
-        "Full-body realistic photo of the same person in the reference image, standing straight facing the camera, neutral expression, arms slightly away from the body, legs shoulder-width apart, symmetrical posture for character rigging, natural proportions, wearing simple casual clothing, studio lighting, plain neutral background, ultra realistic, photorealistic, high detail, full body visible from head to feet.";
+        "Full-body realistic photo of the same person in the reference image, preserve identity and especially preserve the outfit exactly (colors, fabric texture, patterns, logos, prints). Standing straight facing the camera, neutral expression, arms slightly away from the body, legs shoulder-width apart, symmetrical posture for character rigging, natural proportions. Studio lighting, simple background. Ultra realistic, photorealistic, high detail, full body visible from head to feet.";
 
       const i2iRes = await fetch("/api/meshy-ai/image-to-image", {
         method: "POST",
@@ -295,6 +342,7 @@ export function CharacterCreationForm() {
       setRiggedGlbUrl(proxyUrl(riggedGlb) ?? null);
       if (riggedGlb) void saveAsset("rigged_glb", riggedGlb);
       setStep("rigged");
+      void createDefaultTalkAnimation();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
       setStep("error");
@@ -329,17 +377,8 @@ export function CharacterCreationForm() {
   }
 
   async function handleApplyAnimation() {
-    // For Mixamo-style animations we only need the rigged model, not rigTaskId.
-    if (selectedAnimation === "walk") {
-      setExternalAnimationUrl("/animations/walk.glb");
-      setIsAnimating(false);
-      setWorkDurationMs(null);
-      setWorkStartAt(null);
-      setProgress(0);
-      return;
-    }
-
-    if (!rigTaskId) return;
+    const avatar = await initAvatar();
+    if (!avatar) return;
     setError(null);
     setIsAnimating(true);
     startWork(60 * 1000);
@@ -347,13 +386,15 @@ export function CharacterCreationForm() {
       const actionId =
         selectedAnimation === "idle"
           ? 10 // Idle_01
-          : 591; // Hip_Hop_Dance for "dance"
+          : selectedAnimation === "talk"
+            ? 308 // Talk_Passionately
+            : 591; // Hip_Hop_Dance for "dance"
 
-      const res = await fetch("/api/meshy-ai/animate", {
+      const res = await fetch("/api/characters/animate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          rig_task_id: rigTaskId,
+          avatar_id: avatar,
           action_id: actionId,
         }),
       });
@@ -447,7 +488,7 @@ export function CharacterCreationForm() {
     step === "texturing" ||
     step === "rigging";
 
-  const canAnimate = !!rigTaskId && step === "rigged" && !isWorking && !isAnimating;
+  const canAnimate = !!avatarId && !!rigTaskId && step === "rigged" && !isWorking && !isAnimating;
 
   function startWork(durationMs: number) {
     setWorkDurationMs(durationMs);
@@ -623,11 +664,24 @@ export function CharacterCreationForm() {
                     <p className="text-sm text-gray-200">
                       Does this full-body image look OK before we turn it into a 3D character?
                     </p>
-                    <img
-                      src={fullBodyImageUrl}
-                      alt="Full-body preview from Meshy"
-                      className="h-48 w-full rounded-xl border border-white/10 bg-black/40 object-contain"
-                    />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500">Original</p>
+                        <img
+                          src={imageDataUri || ""}
+                          alt="Original input"
+                          className="h-48 w-full rounded-xl border border-white/10 bg-black/40 object-contain"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500">Generated full-body</p>
+                        <img
+                          src={fullBodyImageUrl}
+                          alt="Full-body preview from Meshy"
+                          className="h-48 w-full rounded-xl border border-white/10 bg-black/40 object-contain"
+                        />
+                      </div>
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
@@ -705,7 +759,6 @@ export function CharacterCreationForm() {
             <MascotViewer
               className="absolute inset-0 h-full w-full"
               modelUrl={currentModelUrl}
-              animationUrl={externalAnimationUrl ?? undefined}
             />
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-500">
@@ -751,13 +804,13 @@ export function CharacterCreationForm() {
                 <select
                   value={selectedAnimation}
                   onChange={(e) =>
-                    setSelectedAnimation(e.target.value as "idle" | "walk" | "dance")
+                    setSelectedAnimation(e.target.value as "idle" | "talk" | "dance")
                   }
                   className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 text-xs text-gray-100 focus:border-brand-purple/50 focus:outline-none focus:ring-1 focus:ring-brand-purple/40"
                   disabled={!canAnimate}
                 >
                   <option value="idle">Idle</option>
-                  <option value="walk">Walk</option>
+                  <option value="talk">Talk (308)</option>
                   <option value="dance">Dance</option>
                 </select>
               </div>

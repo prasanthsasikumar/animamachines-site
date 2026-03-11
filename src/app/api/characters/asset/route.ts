@@ -3,15 +3,24 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+const BASE_ASSET_KINDS = [
+  "input_photo",
+  "fullbody_photo",
+  "preview_glb",
+  "textured_glb",
+  "rigged_glb",
+] as const;
+
 const assetSchema = z.object({
   avatar_id: z.string().min(1),
-  kind: z.enum([
-    "input_photo",
-    "fullbody_photo",
-    "preview_glb",
-    "textured_glb",
-    "rigged_glb",
-  ]),
+  kind: z
+    .string()
+    .refine(
+      (k) =>
+        BASE_ASSET_KINDS.includes(k as (typeof BASE_ASSET_KINDS)[number]) ||
+        /^animated_\w+_glb$/.test(k),
+      { message: "Invalid asset kind" }
+    ),
   source_url: z.string().min(1), // http(s) or data URI
 });
 
@@ -78,6 +87,9 @@ export async function POST(request: Request) {
   }
 
   const nextConfig = { ...(avatar.config ?? {}), [kind]: storagePath };
+  if (kind.startsWith("animated_")) {
+    (nextConfig as Record<string, unknown>).preview_model = kind;
+  }
 
   const update: Record<string, unknown> = {
     config: nextConfig,

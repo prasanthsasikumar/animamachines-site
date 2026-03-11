@@ -47,25 +47,41 @@ export function NavAuthLinks({ onLinkClick, variant = "desktop" }: NavAuthLinksP
       (user.user_metadata?.avatar_url as string | undefined) ??
       (user.user_metadata?.picture as string | undefined);
 
+    const itemClass =
+      variant === "desktop"
+        ? "text-gray-400 transition-colors hover:text-white"
+        : "w-full rounded-lg px-3 py-2 text-left text-gray-300 transition-colors hover:bg-white/5 hover:text-white";
+
     return (
       <>
         <Link
           href="/character-creation"
-          className="text-gray-400 transition-colors hover:text-white"
+          className={itemClass}
           onClick={onLinkClick}
         >
           Create
         </Link>
         <Link
+          href="/augmentedhumans"
+          className={itemClass}
+          onClick={onLinkClick}
+        >
+          Augmented Humans
+        </Link>
+        <Link
           href="/characters"
-          className="text-gray-400 transition-colors hover:text-white"
+          className={itemClass}
           onClick={onLinkClick}
         >
           My Characters
         </Link>
         <Link
           href="/account"
-          className="flex items-center gap-2 text-gray-400 transition-colors hover:text-white"
+          className={
+            variant === "desktop"
+              ? "flex items-center gap-2 text-gray-400 transition-colors hover:text-white"
+              : "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
+          }
           onClick={onLinkClick}
         >
           {avatarUrl ? (
@@ -86,7 +102,11 @@ export function NavAuthLinks({ onLinkClick, variant = "desktop" }: NavAuthLinksP
             onLinkClick?.();
             void handleLogout();
           }}
-          className={variant === "desktop" ? "text-gray-400 transition-colors hover:text-white" : "py-2 text-left text-gray-400 transition-colors hover:text-white"}
+          className={
+            variant === "desktop"
+              ? "text-gray-400 transition-colors hover:text-white"
+              : "w-full rounded-lg px-3 py-2 text-left text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
+          }
         >
           Log out
         </button>
@@ -98,7 +118,11 @@ export function NavAuthLinks({ onLinkClick, variant = "desktop" }: NavAuthLinksP
     <>
       <Link
         href="/auth/login"
-        className="text-gray-400 transition-colors hover:text-white"
+        className={
+          variant === "desktop"
+            ? "text-gray-400 transition-colors hover:text-white"
+            : "w-full rounded-lg px-3 py-2 text-left text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
+        }
         onClick={onLinkClick}
       >
         Log in
@@ -108,7 +132,7 @@ export function NavAuthLinks({ onLinkClick, variant = "desktop" }: NavAuthLinksP
         className={
           variant === "desktop"
             ? "ml-2 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-cyan px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-purple/25 transition-all hover:scale-105 hover:shadow-brand-purple/50"
-            : "mt-2 inline-flex items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-brand-purple to-brand-cyan px-5 py-2.5 text-sm font-semibold text-white"
+            : "mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-brand-purple to-brand-cyan px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-purple/25 transition-all hover:shadow-brand-purple/50"
         }
         onClick={onLinkClick}
       >
