@@ -37,10 +37,12 @@ async function pollStatus(
 
 async function pollUntilSucceeded(
   taskId: string,
-  type: TaskType
+  type: TaskType,
+  onPoll?: (iteration: number, status: string) => void
 ): Promise<string | undefined> {
   for (let i = 0; i < 120; i++) {
     const result = await pollStatus(taskId, type);
+    onPoll?.(i, result.status);
     if (result.status === "SUCCEEDED")
       return result.glb_url ?? result.image_url;
     if (result.status === "FAILED" || result.status === "CANCELED") {
@@ -75,6 +77,7 @@ export function AugmentedHumansView() {
   const [error, setError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [glbUrl, setGlbUrl] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const glbApiUrl =
     typeof window !== "undefined" && sessionId
@@ -132,7 +135,19 @@ export function AugmentedHumansView() {
 
     const base = window.location.origin;
 
+    function progressUpdater(rangeStart: number, rangeEnd: number) {
+      return (iteration: number, status: string) => {
+        const t = Math.min(iteration / 60, 1);
+        setProgress(Math.round(rangeStart + (rangeEnd - rangeStart) * t));
+        setStatusMessage((prev) => {
+          const label = prev?.replace(/ \(.*\)$/, "") ?? "";
+          return `${label} (${status.toLowerCase()})`;
+        });
+      };
+    }
+
     try {
+      setStatusMessage("Creating session…");
       const initRes = await fetch(`${base}/api/augmented-humans`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -151,6 +166,7 @@ export function AugmentedHumansView() {
       setSessionId(session_id);
       setProgress(10);
 
+      setStatusMessage("Step 1/4 — Generating full-body photo…");
       const i2iRes = await fetch(`${base}/api/meshy-ai/image-to-image`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -161,7 +177,7 @@ export function AugmentedHumansView() {
       });
       const i2iData = await i2iRes.json().catch(() => ({}));
       if (!i2iRes.ok) throw new Error(i2iData?.error ?? "Full-body generation failed");
-      const fullBody = await pollUntilSucceeded(i2iData.task_id, "image-to-image");
+      const fullBody = await pollUntilSucceeded(i2iData.task_id, "image-to-image", progressUpdater(10, 30));
       if (!fullBody) throw new Error("No full-body output");
 
       await fetch(`${base}/api/augmented-humans/${session_id}`, {
@@ -171,6 +187,7 @@ export function AugmentedHumansView() {
       });
       setProgress(30);
 
+      setStatusMessage("Step 2/4 — Converting to 3D model…");
       const i2tRes = await fetch(`${base}/api/meshy-ai/image-to-3d`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -178,7 +195,7 @@ export function AugmentedHumansView() {
       });
       const i2tData = await i2tRes.json().catch(() => ({}));
       if (!i2tRes.ok) throw new Error(i2tData?.error ?? "3D generation failed");
-      const modelGlb = await pollUntilSucceeded(i2tData.task_id, "image-to-3d");
+      const modelGlb = await pollUntilSucceeded(i2tData.task_id, "image-to-3d", progressUpdater(30, 50));
       if (!modelGlb) throw new Error("No 3D output");
 
       await fetch(`${base}/api/augmented-humans/${session_id}`, {
@@ -188,6 +205,7 @@ export function AugmentedHumansView() {
       });
       setProgress(50);
 
+      setStatusMessage("Step 3/4 — Rigging skeleton…");
       const rigRes = await fetch(`${base}/api/meshy-ai/rig`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -196,7 +214,7 @@ export function AugmentedHumansView() {
       const rigData = await rigRes.json().catch(() => ({}));
       if (!rigRes.ok) throw new Error(rigData?.error ?? "Rigging failed");
       const rigTaskId = rigData.task_id;
-      const riggedGlb = await pollUntilSucceeded(rigTaskId, "rig");
+      const riggedGlb = await pollUntilSucceeded(rigTaskId, "rig", progressUpdater(50, 70));
       if (!riggedGlb) throw new Error("No rigged output");
 
       await fetch(`${base}/api/augmented-humans/${session_id}`, {
@@ -209,6 +227,7 @@ export function AugmentedHumansView() {
       });
       setProgress(70);
 
+      setStatusMessage("Step 4/4 — Animating character…");
       const animRes = await fetch(`${base}/api/augmented-humans/${session_id}/animate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -216,7 +235,7 @@ export function AugmentedHumansView() {
       });
       const animData = await animRes.json().catch(() => ({}));
       if (!animRes.ok) throw new Error(animData?.error ?? "Animation failed");
-      const animatedGlb = await pollUntilSucceeded(animData.task_id, "animation");
+      const animatedGlb = await pollUntilSucceeded(animData.task_id, "animation", progressUpdater(70, 99));
       if (!animatedGlb) throw new Error("No animated output");
 
       await fetch(`${base}/api/augmented-humans/${session_id}`, {
@@ -225,12 +244,14 @@ export function AugmentedHumansView() {
         body: JSON.stringify({ animated_glb_url: animatedGlb }),
       });
 
+      setStatusMessage("Done!");
       setGlbUrl(proxyUrl(animatedGlb) ?? animatedGlb);
       setStep("done");
       setProgress(100);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
       setStep("error");
+      setStatusMessage(null);
     }
   }
 
@@ -288,51 +309,47 @@ export function AugmentedHumansView() {
           {step === "idle" || step === "captured" ? (
             <>
               {!capturedUri ? (
-                <div className="relative mt-4 aspect-video overflow-hidden rounded-xl border border-white/10 bg-black/30">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="h-full w-full object-cover"
-                    style={{ display: cameraReady ? "block" : "none" }}
-                  />
-                  {!cameraReady && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-gray-500">
-                      <p>Opening camera… Allow camera access when prompted.</p>
+                <div className="mt-4 space-y-3">
+                  <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black/30">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="h-full w-full object-cover"
+                      style={{ display: cameraReady ? "block" : "none" }}
+                    />
+                    {!cameraReady && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-gray-500">
+                        <p>Opening camera… Allow camera access when prompted.</p>
+                      </div>
+                    )}
+                    <div className="absolute inset-x-0 bottom-0 p-2">
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="rounded-lg border border-white/20 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10"
+                        className="w-full py-1.5 text-xs text-gray-400 hover:text-white"
                       >
                         Or upload a photo
                       </button>
                     </div>
-                  )}
-                  <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-black/40 p-2">
-                    <button
-                      type="button"
-                      onClick={handleCapture}
-                      disabled={!cameraReady}
-                      className="w-full bg-brand-cyan py-2.5 text-sm font-semibold text-black transition hover:bg-brand-cyan/90 disabled:opacity-50"
-                    >
-                      Capture
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/jpg"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full py-1.5 text-xs text-gray-400 hover:text-white"
-                    >
-                      Or upload a photo
-                    </button>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleCapture}
+                    disabled={!cameraReady}
+                    style={{ backgroundColor: "#8B5CF6", color: "#fff" }}
+                    className="w-full rounded-xl py-3.5 text-sm font-bold shadow-lg transition-all duration-200 hover:scale-[1.02] hover:brightness-110 hover:shadow-purple-500/50 active:scale-[0.98] disabled:cursor-not-allowed disabled:scale-100 disabled:opacity-40 disabled:shadow-none"
+                  >
+                    📸 Capture Photo
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
                 </div>
               ) : (
                 <div className="mt-4 space-y-3">
@@ -445,7 +462,10 @@ export function AugmentedHumansView() {
                     />
                   </div>
                   <p className="text-xs text-gray-500">
-                    Generating 3D character… (up to ~3 minutes)
+                    {statusMessage ?? "Generating 3D character…"}
+                  </p>
+                  <p className="text-[10px] text-gray-600">
+                    This may take up to ~3 minutes
                   </p>
                 </div>
               )}
