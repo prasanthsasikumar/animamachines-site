@@ -28,6 +28,12 @@ export default async function AugmentedHumansPage() {
             >
               View Sessions
             </Link>
+            <Link
+              href="/augmentedhumans/control"
+              className="inline-flex items-center gap-2 rounded-xl border border-brand-cyan/30 bg-brand-cyan/10 px-4 py-2.5 text-sm font-semibold text-brand-cyan transition-colors hover:bg-brand-cyan/20"
+            >
+              🎮 Control Unity
+            </Link>
           </>
         }
       />
