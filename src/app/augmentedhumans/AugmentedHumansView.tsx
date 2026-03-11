@@ -313,7 +313,7 @@ export function AugmentedHumansView() {
                     <button
                       type="button"
                       onClick={handleCapture}
-                      disabled={!cameraReady || step === "generating"}
+                      disabled={!cameraReady}
                       className="w-full bg-brand-cyan py-2.5 text-sm font-semibold text-black transition hover:bg-brand-cyan/90 disabled:opacity-50"
                     >
                       Capture
