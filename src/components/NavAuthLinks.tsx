@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 
@@ -12,7 +11,6 @@ type NavAuthLinksProps = {
 };
 
 export function NavAuthLinks({ onLinkClick, variant = "desktop" }: NavAuthLinksProps) {
-  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -27,14 +25,6 @@ export function NavAuthLinks({ onLinkClick, variant = "desktop" }: NavAuthLinksP
     });
     return () => subscription.unsubscribe();
   }, []);
-
-  async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    onLinkClick?.();
-    router.push("/");
-    router.refresh();
-  }
 
   if (loading) {
     return variant === "desktop" ? (
@@ -96,20 +86,6 @@ export function NavAuthLinks({ onLinkClick, variant = "desktop" }: NavAuthLinksP
           ) : null}
           <span>Account</span>
         </Link>
-        <button
-          type="button"
-          onClick={() => {
-            onLinkClick?.();
-            void handleLogout();
-          }}
-          className={
-            variant === "desktop"
-              ? "text-gray-400 transition-colors hover:text-white"
-              : "w-full rounded-lg px-3 py-2 text-left text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
-          }
-        >
-          Log out
-        </button>
       </>
     );
   }

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AppTopNav } from "@/components/AppTopNav";
+import { LogoutButton } from "./LogoutButton";
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -45,6 +46,10 @@ export default async function AccountPage() {
             Open library →
           </p>
         </Link>
+
+        <div className="mt-8 pt-6 border-t border-white/10">
+          <LogoutButton />
+        </div>
         </div>
       </div>
     </div>
