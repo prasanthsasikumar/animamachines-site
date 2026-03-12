@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AppTopNav } from "@/components/AppTopNav";
+import { SessionGrid } from "./SessionGrid";
 
 export default async function AugmentedHumansHistoryPage() {
   const supabase = await createClient();
@@ -10,25 +12,41 @@ export default async function AugmentedHumansHistoryPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login?next=/augmentedhumans/history");
 
-  const { data: sessions } = await supabase
+  // Use admin client to fetch ALL sessions (not just the current user's)
+  const admin = createAdminClient();
+
+  const { data: sessions } = await admin
     .from("augmented_human_sessions")
     .select(
-      "id, sleep_score, arousal, valence, gender, age_bracket, client_timestamp, capture_photo_path, animated_glb_path, created_at, config"
+      "id, user_id, sleep_score, arousal, valence, gender, age_bracket, client_timestamp, capture_photo_path, animated_glb_path, created_at, config"
     )
     .order("created_at", { ascending: false })
     .limit(50);
 
-  // Build signed URLs for capture thumbnails
+  // Collect unique user IDs and fetch display names
+  const userIds = [...new Set((sessions ?? []).map((s) => s.user_id))];
+  const { data: profiles } = userIds.length
+    ? await admin
+        .from("profiles")
+        .select("id, display_name, email")
+        .in("id", userIds)
+    : { data: [] };
+  const profileMap = new Map(
+    (profiles ?? []).map((p) => [p.id, p.display_name || p.email || "Anonymous"])
+  );
+
+  // Build signed URLs for capture thumbnails (admin client bypasses storage RLS)
   const sessionsWithUrls = await Promise.all(
     (sessions ?? []).map(async (s) => {
       let captureUrl: string | null = null;
       if (s.capture_photo_path) {
-        const { data } = await supabase.storage
+        const { data } = await admin.storage
           .from("characters")
           .createSignedUrl(s.capture_photo_path, 3600);
         captureUrl = data?.signedUrl ?? null;
       }
-      return { ...s, captureUrl };
+      const creatorName = profileMap.get(s.user_id) ?? "Anonymous";
+      return { ...s, captureUrl, creatorName };
     })
   );
 
@@ -51,7 +69,7 @@ export default async function AugmentedHumansHistoryPage() {
           Session History
         </h1>
         <p className="mt-2 text-gray-400">
-          All your Augmented Humans captures and generation results.
+          All Augmented Humans captures and generation results.
         </p>
 
         {sessionsWithUrls.length === 0 ? (
@@ -65,68 +83,7 @@ export default async function AugmentedHumansHistoryPage() {
             </Link>
           </div>
         ) : (
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {sessionsWithUrls.map((s) => (
-              <div
-                key={s.id}
-                className="overflow-hidden rounded-2xl border border-white/10 bg-brand-dark-card/80 transition hover:border-white/20"
-              >
-                {s.captureUrl ? (
-                  <img
-                    src={s.captureUrl}
-                    alt="Capture"
-                    className="h-40 w-full object-cover bg-black/30"
-                  />
-                ) : (
-                  <div className="flex h-40 items-center justify-center bg-black/30 text-gray-600 text-sm">
-                    No capture
-                  </div>
-                )}
-                <div className="p-4 space-y-2">
-                  <p className="text-xs text-gray-500">
-                    {new Date(s.client_timestamp ?? s.created_at).toLocaleString()}
-                  </p>
-                  <div className="flex flex-wrap gap-3 text-xs text-gray-400">
-                    <span>
-                      Sleep: <span className="text-white">{s.sleep_score}</span>
-                    </span>
-                    <span>
-                      Arousal: <span className="text-white">{s.arousal}</span>
-                    </span>
-                    <span>
-                      Valence: <span className="text-white">{s.valence}</span>
-                    </span>
-                    {s.gender && (
-                      <span>
-                        Gender: <span className="text-white capitalize">{s.gender}</span>
-                      </span>
-                    )}
-                    {s.age_bracket && (
-                      <span>
-                        Age: <span className="text-white">{s.age_bracket}</span>
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {s.animated_glb_path ? (
-                      <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-medium text-green-400">
-                        Completed
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-yellow-500/20 px-2 py-0.5 text-[10px] font-medium text-yellow-400">
-                        In progress
-                      </span>
-                    )}
-                  </div>
-                  {s.animated_glb_path && (
-                    <p className="break-all rounded-lg border border-white/10 bg-black/40 px-2 py-1 text-[10px] text-brand-cyan">
-                      /api/augmented-humans/{s.id}/glb
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <SessionGrid sessions={sessionsWithUrls} />
         )}
       </div>
     </div>
