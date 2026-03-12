@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { MascotViewer } from "@/components/MascotViewer";
 
 type Session = {
@@ -21,6 +22,8 @@ export function SessionGrid({ sessions }: { sessions: Session[] }) {
   const [viewingSession, setViewingSession] = useState<Session | null>(null);
   const [glbUrl, setGlbUrl] = useState<string | null>(null);
   const [loadingGlb, setLoadingGlb] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function openViewer(session: Session) {
     if (!session.animated_glb_path) return;
@@ -42,6 +45,47 @@ export function SessionGrid({ sessions }: { sessions: Session[] }) {
   function closeViewer() {
     setViewingSession(null);
     setGlbUrl(null);
+    setQrDataUrl(null);
+    setCopied(false);
+  }
+
+  // Generate QR code when a session is opened
+  useEffect(() => {
+    if (!viewingSession) return;
+    const shareUrl = `${window.location.origin}/augmentedhumans/view/${viewingSession.id}`;
+    QRCode.toDataURL(shareUrl, {
+      width: 160,
+      margin: 1,
+      color: { dark: "#ffffff", light: "#00000000" },
+    }).then(setQrDataUrl).catch(() => {});
+  }, [viewingSession]);
+
+  function getShareUrl() {
+    if (!viewingSession) return "";
+    return `${window.location.origin}/augmentedhumans/view/${viewingSession.id}`;
+  }
+
+  async function copyShareLink() {
+    try {
+      await navigator.clipboard.writeText(getShareUrl());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  }
+
+  async function handleDownload() {
+    if (!viewingSession) return;
+    try {
+      const res = await fetch(`/api/augmented-humans/${viewingSession.id}/glb`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const link = document.createElement("a");
+      link.href = data.glb_url;
+      link.download = `augmented-human-${viewingSession.id}.glb`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {}
   }
 
   return (
@@ -135,12 +179,23 @@ export function SessionGrid({ sessions }: { sessions: Session[] }) {
                   ).toLocaleString()}
                 </p>
               </div>
-              <button
-                onClick={closeViewer}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-gray-300 transition hover:bg-white/10 hover:text-white"
-              >
-                ✕ Close
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleDownload}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white px-5 py-2.5 text-sm font-bold text-white transition hover:bg-white hover:text-black active:scale-95"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3" />
+                  </svg>
+                  Download <span className="font-normal text-xs">(to 3D Print or Use in Games)</span>
+                </button>
+                <button
+                  onClick={closeViewer}
+                  className="ml-auto rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-gray-300 transition hover:bg-white/10 hover:text-white"
+                >
+                  ✕ Close
+                </button>
+              </div>
             </div>
 
             {/* Viewer */}
@@ -161,31 +216,66 @@ export function SessionGrid({ sessions }: { sessions: Session[] }) {
               )}
             </div>
 
-            {/* Footer with stats */}
-            <div className="flex flex-wrap gap-4 border-t border-white/10 px-6 py-3 text-xs text-gray-400">
-              <span>
-                Sleep: <span className="text-white">{viewingSession.sleep_score}</span>
-              </span>
-              <span>
-                Arousal: <span className="text-white">{viewingSession.arousal}</span>
-              </span>
-              <span>
-                Valence: <span className="text-white">{viewingSession.valence}</span>
-              </span>
-              {viewingSession.gender && (
-                <span>
-                  Gender:{" "}
-                  <span className="text-white capitalize">
-                    {viewingSession.gender}
+            {/* Footer with stats + QR code */}
+            <div className="flex items-start gap-4 border-t border-white/10 px-6 py-4">
+              {/* QR code */}
+              <div className="flex flex-col items-center gap-2 shrink-0">
+                {qrDataUrl ? (
+                  <img
+                    src={qrDataUrl}
+                    alt="QR Code"
+                    className="h-24 w-24 rounded-lg bg-white/10 p-1"
+                  />
+                ) : (
+                  <div className="h-24 w-24 animate-pulse rounded-lg bg-white/10" />
+                )}
+                <p className="text-[10px] text-gray-500">Scan to view</p>
+              </div>
+
+              {/* Stats + share link */}
+              <div className="flex-1 space-y-3">
+                <div className="flex flex-wrap gap-3 text-xs text-gray-400">
+                  <span>
+                    Sleep: <span className="text-white">{viewingSession.sleep_score}</span>
                   </span>
-                </span>
-              )}
-              {viewingSession.age_bracket && (
-                <span>
-                  Age:{" "}
-                  <span className="text-white">{viewingSession.age_bracket}</span>
-                </span>
-              )}
+                  <span>
+                    Arousal: <span className="text-white">{viewingSession.arousal}</span>
+                  </span>
+                  <span>
+                    Valence: <span className="text-white">{viewingSession.valence}</span>
+                  </span>
+                  {viewingSession.gender && (
+                    <span>
+                      Gender:{" "}
+                      <span className="text-white capitalize">
+                        {viewingSession.gender}
+                      </span>
+                    </span>
+                  )}
+                  {viewingSession.age_bracket && (
+                    <span>
+                      Age:{" "}
+                      <span className="text-white">{viewingSession.age_bracket}</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Share link */}
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={getShareUrl()}
+                    className="flex-1 truncate rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-brand-cyan outline-none"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <button
+                    onClick={copyShareLink}
+                    className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-gray-300 transition hover:bg-white/10 hover:text-white"
+                  >
+                    {copied ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

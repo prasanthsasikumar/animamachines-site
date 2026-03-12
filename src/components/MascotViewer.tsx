@@ -240,7 +240,7 @@ export function MascotViewer({
   }, [modelUrl, animationUrl, viewerId]);
 
   return (
-    <div className={className} ref={viewerRef} data-mascot-viewer={viewerId}>
+    <div className={`relative ${className ?? ""}`} ref={viewerRef} data-mascot-viewer={viewerId}>
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
       {status !== "ready" ? (
