@@ -12,6 +12,11 @@ const commandSchema = z.object({
     "mode",
     "answer",
     "custom",
+    "auto",
+    "setup",
+    "load_character",
+    "mic_on",
+    "mic_off",
   ]),
   payload: z.record(z.string(), z.unknown()).optional(),
 });

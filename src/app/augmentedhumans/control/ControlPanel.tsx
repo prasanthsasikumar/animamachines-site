@@ -11,6 +11,9 @@ const COMMANDS = [
   { command: "answer", label: "Answer: No", payload: { answer: "no" } },
   { command: "reset", label: "↺ Reset", payload: {} },
   { command: "stop", label: "■ Stop", payload: {} },
+  { command: "load_character", label: "🧍 Load Character", payload: {} },
+  { command: "mic_on", label: "🎙 Mic On", payload: {} },
+  { command: "mic_off", label: "🔇 Mic Off", payload: {} },
 ] as const;
 
 export function ControlPanel() {
@@ -61,7 +64,13 @@ export function ControlPanel() {
                     ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20"
                     : c.command === "mode"
                       ? "border-brand-cyan/30 bg-brand-cyan/10 text-brand-cyan hover:bg-brand-cyan/20"
-                      : "border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20"
+                      : c.command === "load_character"
+                        ? "border-orange-500/30 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20"
+                        : c.command === "mic_on"
+                          ? "border-teal-500/30 bg-teal-500/10 text-teal-400 hover:bg-teal-500/20"
+                          : c.command === "mic_off"
+                            ? "border-gray-500/30 bg-gray-500/10 text-gray-400 hover:bg-gray-500/20"
+                            : "border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20"
             }`}
           >
             {sending === c.label ? "Sending…" : c.label}
