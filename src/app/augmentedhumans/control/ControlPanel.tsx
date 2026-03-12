@@ -14,6 +14,14 @@ const COMMANDS = [
   { command: "load_character", label: "🧍 Load Character", payload: {} },
   { command: "mic_on", label: "🎙 Mic On", payload: {} },
   { command: "mic_off", label: "🔇 Mic Off", payload: {} },
+  { command: "say", label: "👋 Greeting", payload: { text: "greeting" } },
+  { command: "say", label: "😴 Ask about Sleep", payload: { text: "ask_about_sleep" } },
+  { command: "say", label: "🎨 Statement about Visualizations", payload: { text: "statement_visualizations" } },
+  { command: "say", label: "🤔 What do you think?", payload: { text: "what_do_you_think" } },
+  { command: "say", label: "🤝 Do you agree?", payload: { text: "do_you_agree" } },
+  { command: "say", label: "👋 Thank you, see you later", payload: { text: "thank_you_see_you_later" } },
+  { command: "say", label: "📝 Okay noted", payload: { text: "okay_noted" } },
+  { command: "say", label: "❓ What would your choice be?", payload: { text: "what_would_your_choice_be" } },
 ] as const;
 
 export function ControlPanel() {
@@ -70,7 +78,9 @@ export function ControlPanel() {
                           ? "border-teal-500/30 bg-teal-500/10 text-teal-400 hover:bg-teal-500/20"
                           : c.command === "mic_off"
                             ? "border-gray-500/30 bg-gray-500/10 text-gray-400 hover:bg-gray-500/20"
-                            : "border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20"
+                            : c.command === "say"
+                              ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20"
+                              : "border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20"
             }`}
           >
             {sending === c.label ? "Sending…" : c.label}

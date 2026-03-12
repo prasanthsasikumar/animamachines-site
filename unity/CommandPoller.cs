@@ -26,6 +26,15 @@ public class CommandPoller : MonoBehaviour
     [Tooltip("Reference to the VendingMachineButtonHaandlers component for placement")]
     [SerializeField] private VendingMachineButtonHaandlers vendingMachineHandler;
 
+    // ── Placement ─────────────────────────────────────────────────
+    [Header("Visualization Placement")]
+    [Tooltip("Side offset from vending machine center (positive = right of machine)")]
+    [SerializeField] private float sideOffset = 0.5f;
+    [Tooltip("Forward offset from vending machine (positive = toward user)")]
+    [SerializeField] private float forwardOffset = 0.3f;
+    [Tooltip("Height offset from floor")]
+    [SerializeField] private float heightOffset = 0f;
+
     // ── Auto Mode ─────────────────────────────────────────────────
     [Header("Auto Mode")]
     [Tooltip("Seconds to stay on each mode during auto-cycle")]
@@ -41,6 +50,7 @@ public class CommandPoller : MonoBehaviour
     public UnityEvent<CommandResponse> onAnyCommand;
     public UnityEvent onMicOn;
     public UnityEvent onMicOff;
+    public UnityEvent<string> onSay;
 
     // ── Private State ─────────────────────────────────────────────
     private Coroutine _pollCoroutine;
@@ -67,6 +77,21 @@ public class CommandPoller : MonoBehaviour
         if (_pollCoroutine != null)
             StopCoroutine(_pollCoroutine);
         StopAutoMode();
+    }
+
+    void LateUpdate()
+    {
+        // Make the active visualization face the camera at all times
+        var cam = Camera.main;
+        if (cam == null) return;
+
+        Transform target = GetActiveVisualizationTransform();
+        if (target == null) return;
+
+        Vector3 lookDir = cam.transform.position - target.position;
+        lookDir.y = 0f; // keep upright
+        if (lookDir.sqrMagnitude > 0.001f)
+            target.rotation = Quaternion.LookRotation(lookDir, Vector3.up);
     }
 
     // ────────────────────────────────────────────────────────────────
@@ -148,6 +173,10 @@ public class CommandPoller : MonoBehaviour
             case "mic_off":
                 HandleMicOff();
                 break;
+            case "say":
+                string sayText = ExtractString(cmd.payloadRaw, "text");
+                HandleSay(sayText);
+                break;
         }
 
         yield return Acknowledge(cmd.id);
@@ -173,14 +202,14 @@ public class CommandPoller : MonoBehaviour
     // Demo State Handlers
     // ────────────────────────────────────────────────────────────────
 
-    /// <summary>Start demo: hide everything, then show Mode 1 by default.</summary>
+    /// <summary>Start demo: hide everything, ready for mode commands.</summary>
     public void HandleStart()
     {
         StopAutoMode();
         _setupMode = false;
         HideAll();
-        SetMode(1);
-        Debug.Log("[CommandPoller] Demo started – Mode 1 (Orb) active.");
+        _currentMode = 0;
+        Debug.Log("[CommandPoller] Demo started.");
     }
 
     /// <summary>Stop demo: hide all visualizations.</summary>
@@ -264,6 +293,12 @@ public class CommandPoller : MonoBehaviour
         Debug.Log("[CommandPoller] Microphone OFF.");
     }
 
+    private void HandleSay(string text)
+    {
+        onSay?.Invoke(text);
+        Debug.Log($"[CommandPoller] Say: {text}");
+    }
+
     // ────────────────────────────────────────────────────────────────
     // Auto Mode – cycle through modes automatically
     // ────────────────────────────────────────────────────────────────
@@ -321,6 +356,9 @@ public class CommandPoller : MonoBehaviour
         {
             case 1:
                 SetActive(orbVisualization, true);
+                PositionNearVendingMachine(orbVisualization?.transform);
+                if (orbVisualization != null)
+                    orbVisualization.transform.position += Vector3.up * 1f;
                 Debug.Log("[CommandPoller] Mode 1 – Orb visualization active.");
                 break;
             case 2:
@@ -329,6 +367,7 @@ public class CommandPoller : MonoBehaviour
                 break;
             case 3:
                 SetActive(avatarVisualization, true);
+                PositionNearVendingMachine(avatarVisualization?.transform);
                 Debug.Log("[CommandPoller] Mode 3 – High-fidelity avatar active.");
                 break;
         }
@@ -405,15 +444,11 @@ public class CommandPoller : MonoBehaviour
             yield break;
         }
 
-        // Determine parent transform
-        Transform parent = characterParent != null ? characterParent : transform;
-
         // Destroy previous character instance
         if (_characterInstance != null)
             Destroy(_characterInstance);
 
         _characterInstance = new GameObject("CharacterModel");
-        _characterInstance.transform.SetParent(parent, false);
 
         gltf.InstantiateMainScene(_characterInstance.transform);
 
@@ -440,6 +475,8 @@ public class CommandPoller : MonoBehaviour
 
         // Respect current mode – only show if Mode 2 is active
         _characterInstance.SetActive(_currentMode == 2);
+        if (_currentMode == 2)
+            PositionNearVendingMachine(_characterInstance.transform);
 
         Debug.Log("[CommandPoller] Character model loaded.");
     }
@@ -449,6 +486,7 @@ public class CommandPoller : MonoBehaviour
         if (_characterInstance != null)
         {
             _characterInstance.SetActive(true);
+            PositionNearVendingMachine(_characterInstance.transform);
         }
         else if (!_characterLoading)
         {
@@ -490,6 +528,39 @@ public class CommandPoller : MonoBehaviour
         public string session_id;
         public string glb_url;
         public string created_at;
+    }
+
+    /// <summary>Position a transform slightly to the side and in front of the vending machine.</summary>
+    private void PositionNearVendingMachine(Transform target)
+    {
+        if (target == null) return;
+
+        Transform vm = vendingMachineHandler != null ? vendingMachineHandler.CurrentInstanceTransform : null;
+        if (vm == null)
+        {
+            Debug.LogWarning("[CommandPoller] Vending machine not found – cannot position visualization.");
+            return;
+        }
+
+        // vm.forward points toward the user (it was spawned with LookRotation(-cameraForward))
+        Vector3 pos = vm.position
+                    + vm.forward * forwardOffset
+                    + vm.right * sideOffset;
+        pos.y = heightOffset;
+
+        target.position = pos;
+    }
+
+    /// <summary>Get the transform of whichever visualization is currently active.</summary>
+    private Transform GetActiveVisualizationTransform()
+    {
+        switch (_currentMode)
+        {
+            case 1: return orbVisualization != null && orbVisualization.activeSelf ? orbVisualization.transform : null;
+            case 2: return _characterInstance != null && _characterInstance.activeSelf ? _characterInstance.transform : null;
+            case 3: return avatarVisualization != null && avatarVisualization.activeSelf ? avatarVisualization.transform : null;
+            default: return null;
+        }
     }
 
     private static void SetActive(GameObject go, bool state)
