@@ -31,6 +31,7 @@ export function ControlPanel() {
     time: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [customText, setCustomText] = useState("");
 
   async function send(command: string, payload: Record<string, unknown>, label: string) {
     setSending(label);
@@ -87,6 +88,33 @@ export function ControlPanel() {
           </button>
         ))}
       </div>
+
+      {/* Custom text input */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!customText.trim()) return;
+          send("say", { text: customText.trim().replace(/ /g, "_") }, `say: ${customText.trim()}`);
+          setCustomText("");
+        }}
+        className="flex gap-2"
+      >
+        <input
+          type="text"
+          value={customText}
+          onChange={(e) => setCustomText(e.target.value)}
+          placeholder="Type a message to send…"
+          disabled={sending !== null}
+          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-indigo-500/50 disabled:opacity-40"
+        />
+        <button
+          type="submit"
+          disabled={sending !== null || !customText.trim()}
+          className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-6 py-3 text-sm font-semibold text-indigo-400 transition-all hover:bg-indigo-500/20 active:scale-[0.98] disabled:opacity-40"
+        >
+          {sending?.startsWith("say:") ? "Sending…" : "Send"}
+        </button>
+      </form>
 
       {lastSent && (
         <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-400">
