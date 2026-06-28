@@ -33,6 +33,9 @@ export function MascotViewer({
     const canvas = canvasRef.current;
     if (!viewer || !canvas) return;
 
+    setStatus("loading");
+    setErrorText(null);
+
     let raf = 0;
     let interval: number | undefined;
     const reducedMotion = prefersReducedMotion();
@@ -77,6 +80,7 @@ export function MascotViewer({
     const resizeRenderer = () => {
       const w = viewer.clientWidth;
       const h = viewer.clientHeight;
+      if (w === 0 || h === 0) return;
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
@@ -107,7 +111,8 @@ export function MascotViewer({
       }, 250);
     };
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
+    timer.connect(document);
     let mixer: THREE.AnimationMixer | null = null;
     let currentAction: THREE.AnimationAction | null = null;
     let clips: THREE.AnimationClip[] = [];
@@ -220,9 +225,10 @@ export function MascotViewer({
     );
     io.observe(viewer);
 
-    function animate() {
+    function animate(timestamp?: number) {
       raf = requestAnimationFrame(animate);
-      const delta = clock.getDelta();
+      timer.update(timestamp);
+      const delta = timer.getDelta();
       if (mixer) mixer.update(delta);
       controls.update();
       renderer.render(scene, camera);
@@ -234,13 +240,18 @@ export function MascotViewer({
       if (interval) window.clearInterval(interval);
       if (raf) cancelAnimationFrame(raf);
       resizeObs?.disconnect();
+      timer.dispose();
       controls.dispose();
       renderer.dispose();
     };
   }, [modelUrl, animationUrl, viewerId]);
 
   return (
-    <div className={`relative ${className ?? ""}`} ref={viewerRef} data-mascot-viewer={viewerId}>
+    <div
+      className={className ?? "relative h-full w-full min-h-[200px]"}
+      ref={viewerRef}
+      data-mascot-viewer={viewerId}
+    >
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
       {status !== "ready" ? (
