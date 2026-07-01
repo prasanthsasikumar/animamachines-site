@@ -1,71 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { MascotViewer } from "@/components/MascotViewer";
 import { NavAuthLinks } from "@/components/NavAuthLinks";
-
-function NewsletterSignupForm() {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [message, setMessage] = useState("");
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email.trim()) return;
-    setStatus("loading");
-    setMessage("");
-    try {
-      const res = await fetch("/api/newsletter/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setStatus("error");
-        setMessage(data?.error ?? "Something went wrong");
-        return;
-      }
-      setStatus("success");
-      setEmail("");
-    } catch {
-      setStatus("error");
-      setMessage("Something went wrong");
-    }
-  }
-
-  return (
-    <form
-      className="mx-auto flex max-w-md flex-col gap-3 sm:flex-row"
-      onSubmit={handleSubmit}
-    >
-      <input
-        type="email"
-        required
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        disabled={status === "loading" || status === "success"}
-        placeholder="you@awesome.com"
-        className="flex-1 rounded-xl border border-white/10 bg-white/5 px-5 py-3.5 text-sm text-white placeholder:text-gray-500 transition-all focus:border-brand-purple/50 focus:outline-none focus:ring-2 focus:ring-brand-purple/20 disabled:opacity-70"
-      />
-      <button
-        type="submit"
-        disabled={status === "loading" || status === "success"}
-        className="whitespace-nowrap rounded-xl bg-gradient-to-r from-brand-purple to-brand-cyan px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-purple/25 transition-all hover:scale-[1.03] hover:shadow-brand-purple/50 disabled:opacity-70"
-      >
-        {status === "loading"
-          ? "…"
-          : status === "success"
-            ? "You're In!"
-            : "Get Early Access"}
-      </button>
-      {message ? (
-        <p className="w-full text-sm text-red-400">{message}</p>
-      ) : null}
-    </form>
-  );
-}
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -119,54 +57,13 @@ export function MarketingPage() {
     return () => io.disconnect();
   }, [reducedMotion]);
 
-  const pricing = useMemo(
-    () => [
-      {
-        name: "Hobbyist",
-        price: "$0",
-        subtitle: "Perfect for tinkering & personal projects",
-        cta: "Get Started Free",
-        highlight: false,
-        features: ["1 avatar slot", "500 credits / month", "Community support", "5 languages"],
-      },
-      {
-        name: "Creator",
-        price: "$29",
-        subtitle: "For builders shipping real products",
-        cta: "Start Creating",
-        highlight: true,
-        features: [
-          "10 avatar slots",
-          "10,000 credits / month",
-          "Priority support & API access",
-          "50+ languages & custom voices",
-          "Behavior engine (full access)",
-        ],
-      },
-      {
-        name: "Business",
-        price: "$149",
-        subtitle: "Enterprise-grade with dedicated support",
-        cta: "Contact Sales",
-        highlight: false,
-        features: [
-          "Unlimited avatar slots",
-          "100,000 credits / month",
-          "Dedicated account manager",
-          "SSO, SLA & on-prem option",
-          "Custom model fine-tuning",
-        ],
-      },
-    ],
-    [],
-  );
-
   return (
     <div className="min-h-screen bg-brand-dark text-gray-200 overflow-x-hidden">
       {/* NAV */}
       <nav
+        style={{ top: "var(--sunset-banner-h, 0px)" }}
         className={[
-          "fixed top-0 w-full z-50 transition-all duration-300",
+          "fixed w-full z-50 transition-all duration-300",
           scrolled ? "bg-brand-dark/90 backdrop-blur-xl shadow-lg shadow-black/20" : "",
         ].join(" ")}
       >
@@ -189,14 +86,8 @@ export function MarketingPage() {
             <a href="#features" className="text-gray-400 transition-colors hover:text-white">
               Features
             </a>
-            <a href="#pricing" className="text-gray-400 transition-colors hover:text-white">
-              Pricing
-            </a>
             <a href="#about" className="text-gray-400 transition-colors hover:text-white">
               About
-            </a>
-            <a href="#hiring" className="text-gray-400 transition-colors hover:text-white">
-              Careers
             </a>
             <NavAuthLinks variant="desktop" />
           </div>
@@ -225,9 +116,7 @@ export function MarketingPage() {
           <div className="flex flex-col gap-4 px-6 py-4 text-sm font-medium">
             {[
               ["#features", "Features"],
-              ["#pricing", "Pricing"],
               ["#about", "About"],
-              ["#hiring", "Careers"],
             ].map(([href, label]) => (
               <a
                 key={href}
@@ -260,11 +149,6 @@ export function MarketingPage() {
         <div className="relative mx-auto w-full max-w-7xl px-6">
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-8">
             <div className="max-w-xl">
-              <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-medium text-brand-cyan">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-brand-cyan" />
-                Now in Early Access
-              </div>
-
               <h1 className="mb-6 font-display text-5xl font-bold leading-[1.08] tracking-tight text-white sm:text-6xl lg:text-7xl">
                 Give Your AI <br />
                 <span className="text-gradient">a Soul - </span>
@@ -279,7 +163,7 @@ export function MarketingPage() {
 
               <div className="flex flex-col gap-4 sm:flex-row">
                 <a
-                  href="#early-access"
+                  href="/auth/signup"
                   className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-brand-purple to-brand-cyan px-8 py-4 text-base font-semibold text-white shadow-xl shadow-brand-purple/30 transition-all hover:scale-[1.03] hover:shadow-brand-purple/50"
                 >
                   Create Your Anima
@@ -294,7 +178,9 @@ export function MarketingPage() {
                   </svg>
                 </a>
                 <a
-                  href="#features"
+                  href="https://youtu.be/YKkao6rQCYY"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-8 py-4 text-base font-semibold text-white transition-all hover:bg-white/10"
                 >
                   <svg className="h-5 w-5 text-brand-cyan" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -441,78 +327,6 @@ export function MarketingPage() {
         </div>
       </section>
 
-      {/* PRICING */}
-      <section id="pricing" className="relative py-24 sm:py-32">
-        <div className="absolute top-0 left-1/2 h-px w-48 -translate-x-1/2 bg-gradient-to-r from-transparent via-brand-purple/40 to-transparent" />
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto mb-16 max-w-2xl text-center reveal" data-reveal>
-            <p className="mb-3 text-sm font-semibold tracking-widest text-brand-cyan uppercase">Pricing</p>
-            <h2 className="mb-5 font-display text-4xl font-bold text-white sm:text-5xl">Simple Plans, Real Value</h2>
-            <p className="text-lg leading-relaxed text-gray-400">
-              Start free, scale as you grow. Credits let you pay for what you actually use on top of your plan.
-            </p>
-          </div>
-
-          <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-3">
-            {pricing.map((p) => (
-              <div
-                key={p.name}
-                className={[
-                  "relative flex flex-col rounded-2xl p-8 reveal",
-                  p.highlight
-                    ? "bg-brand-dark-card border-2 border-brand-purple/50 shadow-xl shadow-brand-purple/10"
-                    : "bg-brand-dark-card/60 backdrop-blur border border-white/5",
-                ].join(" ")}
-                data-reveal
-              >
-                {p.highlight ? (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span className="badge-shimmer rounded-full px-4 py-1 text-xs font-semibold text-white">
-                      Most Popular
-                    </span>
-                  </div>
-                ) : null}
-
-                <div className="mb-6">
-                  <h3 className="mb-1 font-display text-xl font-semibold text-white">{p.name}</h3>
-                  <p className="text-sm text-gray-500">{p.subtitle}</p>
-                </div>
-                <div className="mb-8">
-                  <span className="font-display text-5xl font-bold text-white">{p.price}</span>
-                  <span className="ml-1 text-sm text-gray-500">/month</span>
-                </div>
-                <ul className="mb-10 flex-1 space-y-3 text-sm text-gray-400">
-                  {p.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2">
-                      <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-brand-cyan" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href="#early-access"
-                  className={[
-                    "inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition-all",
-                    p.highlight
-                      ? "bg-gradient-to-r from-brand-purple to-brand-cyan text-white shadow-lg shadow-brand-purple/25 hover:scale-[1.02] hover:shadow-brand-purple/50"
-                      : "bg-white/5 border border-white/10 text-white hover:bg-white/10",
-                  ].join(" ")}
-                >
-                  {p.cta}
-                </a>
-              </div>
-            ))}
-          </div>
-
-          <p className="mt-8 text-center text-sm text-gray-500 reveal" data-reveal>
-            Need more credits? Add-on packs start at{" "}
-            <strong className="text-gray-300">$5 for 2,000 credits</strong>. No surprises, no hidden fees.
-          </p>
-        </div>
-      </section>
-
       {/* ABOUT */}
       <section id="about" className="relative py-24 sm:py-32">
         <div className="absolute top-0 left-1/2 h-px w-48 -translate-x-1/2 bg-gradient-to-r from-transparent via-brand-cyan/40 to-transparent" />
@@ -534,6 +348,31 @@ export function MarketingPage() {
                 <p>
                   Our proprietary WebGL rendering pipeline achieves sub-200ms end-to-end latency, making conversations feel truly natural. We handle everything from phoneme extraction and emotion classification to skeletal animation and shader rendering.
                 </p>
+              </div>
+
+              <div className="mt-8 flex flex-wrap gap-4">
+                <a
+                  href="https://youtu.be/YKkao6rQCYY"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-2 text-sm font-semibold text-brand-cyan transition-colors hover:text-white"
+                >
+                  Watch it in action
+                  <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </a>
+                <a
+                  href="https://dl.acm.org/doi/full/10.1145/3795011.3797399"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-2 text-sm font-semibold text-brand-cyan transition-colors hover:text-white"
+                >
+                  Read the peer-reviewed research
+                  <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </a>
               </div>
             </div>
 
@@ -577,116 +416,6 @@ export function MarketingPage() {
         </div>
       </section>
 
-      {/* CAREERS */}
-      <section id="hiring" className="relative py-24 sm:py-32">
-        <div className="absolute top-0 left-1/2 h-px w-48 -translate-x-1/2 bg-gradient-to-r from-transparent via-brand-purple/40 to-transparent" />
-        <div className="mx-auto max-w-4xl px-6">
-          <div className="mb-14 text-center reveal" data-reveal>
-            <p className="mb-3 text-sm font-semibold tracking-widest text-brand-cyan uppercase">Careers</p>
-            <h2 className="mb-5 font-display text-4xl font-bold text-white sm:text-5xl">
-              Build the Future <span className="text-gradient">With Us</span>
-            </h2>
-            <p className="mx-auto max-w-xl text-lg leading-relaxed text-gray-400">
-              We are a small, relentless team looking for people who want to define what embodied AI looks like. Remote-first. Humans preferred.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {[
-              {
-                role: "3D Character Artist",
-                desc: "Create expressive, cartoon-style avatars optimized for real-time WebGL rendering.",
-                tags: [
-                  ["Art & Design", "bg-brand-purple/15 text-brand-purple"],
-                  ["Remote", "bg-white/5 text-gray-400"],
-                ],
-                mailto: "careers@animamachines.com?subject=3D%20Character%20Artist",
-              },
-              {
-                role: "LLM Integration Specialist",
-                desc: "Build and maintain connectors for OpenAI, Claude, and custom model APIs.",
-                tags: [
-                  ["Engineering", "bg-brand-cyan/15 text-brand-cyan"],
-                  ["Remote", "bg-white/5 text-gray-400"],
-                ],
-                mailto: "careers@animamachines.com?subject=LLM%20Integration%20Specialist",
-              },
-              {
-                role: "Unity / WebGL Engineer",
-                desc: "Optimize our real-time 3D rendering pipeline for browser-based avatar experiences.",
-                tags: [
-                  ["Engineering", "bg-purple-500/15 text-purple-400"],
-                  ["Remote", "bg-white/5 text-gray-400"],
-                ],
-                mailto: "careers@animamachines.com?subject=Unity%2FWebGL%20Engineer",
-              },
-            ].map((j) => (
-              <div
-                key={j.role}
-                className="group flex flex-col gap-4 rounded-2xl border border-white/5 bg-brand-dark-card/60 p-6 backdrop-blur transition-colors hover:border-brand-purple/30 sm:flex-row sm:items-center sm:p-7 reveal"
-                data-reveal
-              >
-                <div className="flex-1">
-                  <h3 className="mb-1 font-display text-lg font-semibold text-white">{j.role}</h3>
-                  <p className="text-sm text-gray-500">{j.desc}</p>
-                </div>
-                <div className="flex flex-shrink-0 items-center gap-3">
-                  {j.tags.map(([t, cls]) => (
-                    <span key={t} className={`rounded-full px-3 py-1 text-xs font-medium ${cls}`}>
-                      {t}
-                    </span>
-                  ))}
-                </div>
-                <a
-                  href={`mailto:${j.mailto}`}
-                  className="group/link inline-flex flex-shrink-0 items-center gap-1 text-sm font-semibold text-brand-cyan transition-colors hover:text-white"
-                >
-                  Apply
-                  <svg className="h-4 w-4 transition-transform group-hover/link:translate-x-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </a>
-              </div>
-            ))}
-          </div>
-
-          <p className="mt-8 text-center text-sm text-gray-500 reveal" data-reveal>
-            Do not see your role? Reach out anyway —{" "}
-            <a href="mailto:careers@animamachines.com" className="text-brand-cyan transition-colors hover:text-white">
-              careers@animamachines.com
-            </a>
-          </p>
-        </div>
-      </section>
-
-      {/* EARLY ACCESS */}
-      <section id="early-access" className="relative py-24 sm:py-32">
-        <div className="absolute top-0 left-1/2 h-px w-48 -translate-x-1/2 bg-gradient-to-r from-transparent via-brand-cyan/40 to-transparent" />
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="hero-blob left-[30%] top-[20%] h-[600px] w-[600px] bg-brand-purple" />
-        </div>
-        <div className="relative mx-auto max-w-3xl px-6 text-center">
-          <div className="reveal" data-reveal>
-            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-medium text-brand-cyan">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-brand-cyan" />
-              Limited spots available
-            </div>
-            <h2 className="mb-6 font-display text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">
-              Ready to Bring <br />
-              Your AI to <span className="text-gradient">Life?</span>
-            </h2>
-            <p className="mx-auto mb-10 max-w-lg text-lg leading-relaxed text-gray-400">
-              Join the early access and be among the first to create avatars that do not just talk — they{" "}
-              <em>connect</em>.
-            </p>
-
-            <NewsletterSignupForm />
-
-            <p className="mt-4 text-xs text-gray-600">No spam. No credit card. Just early access to the future.</p>
-          </div>
-        </div>
-      </section>
-
       {/* FOOTER */}
       <footer className="border-t border-white/5 py-16">
         <div className="mx-auto max-w-7xl px-6">
@@ -713,9 +442,9 @@ export function MarketingPage() {
             </div>
 
             {[
-              { title: "Product", links: [["#features", "Features"], ["#pricing", "Pricing"], ["#early-access", "Early Access"], ["#", "Changelog"]] },
+              { title: "Product", links: [["#features", "Features"], ["#", "Changelog"]] },
               { title: "Developers", links: [["#", "Documentation"], ["#", "API Reference"], ["#", "SDK & Libraries"], ["#", "Status"]] },
-              { title: "Company", links: [["#about", "About"], ["#hiring", "Careers"], ["mailto:investors@animamachines.com", "Investors"], ["mailto:hello@animamachines.com", "Contact"]] },
+              { title: "Company", links: [["#about", "About"], ["mailto:investors@animamachines.com", "Investors"], ["mailto:hello@animamachines.com", "Contact"]] },
             ].map((col) => (
               <div key={col.title}>
                 <h4 className="mb-4 font-display text-sm font-semibold text-white">{col.title}</h4>

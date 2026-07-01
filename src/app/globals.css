@@ -3,6 +3,7 @@
 :root {
   --background: #0f0b1e;
   --foreground: #e5e7eb;
+  --sunset-banner-h: 0px;
 }
 
 @theme inline {
@@ -10,6 +11,18 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
   --font-display: var(--font-space-grotesk);
+
+  /* Mirrors tailwind.config.ts theme.extend.colors.brand. Tailwind v4 does
+     not read tailwind.config.ts automatically without an explicit config
+     directive, so these must also be declared here as CSS variables for
+     the brand color utility classes to generate any real CSS at all. */
+  --color-brand-purple: #8b5cf6;
+  --color-brand-purple-deep: #6d28d9;
+  --color-brand-cyan: #06b6d4;
+  --color-brand-cyan-light: #22d3ee;
+  --color-brand-dark: #0f0b1e;
+  --color-brand-dark-card: #1a1333;
+  --color-brand-dark-surface: #140f26;
 }
 
 @media (prefers-color-scheme: dark) {
