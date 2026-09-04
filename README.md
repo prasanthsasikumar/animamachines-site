@@ -1,16 +1,21 @@
 # Anima Machines
 
-> **Give Your AI a Soul - and a Face.**
+Anima Machines has shut down. This repo is now a single static-style Next.js page:
+a farewell letter and a gallery of every avatar and Augmented Humans 2026 booth
+session people created with the platform.
 
-Anima Machines is a platform for creating expressive, cartoon-style or 3D avatars with real-time emotional animations, voice synthesis, and a powerful behavior engine - connectable to any LLM.
+The original product (photo to rigged 3D avatar, real-time emotion, voice, LLM
+behaviour engine) lived on Supabase, which has been deleted. Everything shown on
+the page comes from a frozen export in `src/content/showcase-data.ts` and the
+static models under `public/showcase/`.
 
 ## Tech stack
 
 - **Next.js 16** (App Router)
 - **Tailwind CSS** + Inter / Space Grotesk
-- **Supabase** (Auth + Postgres)
-- **Three.js** (3D mascot viewer)
-- **Resend** (newsletter emails)
+- **Three.js** (3D model viewer)
+
+No environment variables are needed.
 
 ## Getting started
 
@@ -20,26 +25,6 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
-
-## Environment variables
-
-Copy `.env.example` to `.env.local` and add:
-
-- `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (required)
-- Optional: `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `CRON_SECRET`, Stripe keys
-
-## Project structure
-
-```
-├── src/
-│   ├── app/          # Routes, pages, API
-│   ├── components/   # React components
-│   └── lib/          # Supabase clients, utilities
-├── public/           # Static assets (mascot, images)
-├── supabase/
-│   └── migrations/   # DB schema
-└── docs/             # Setup guides (SMTP, auth)
-```
 
 ## Deploy (Vercel)
 

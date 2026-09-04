@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
-import { SunsetBanner } from "@/components/SunsetBanner";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,9 +15,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Anima Machines — Give Your AI a Soul and a Face",
+  title: "Anima Machines — Thank you, and goodbye",
   description:
-    "Create expressive cartoon-style or 3D avatars with real-time emotions, voice synthesis, and behavior engines for any LLM.",
+    "Anima Machines has shut down. A farewell letter, plus a gallery of every avatar and Augmented Humans 2026 booth session people created with it.",
 };
 
 export default function RootLayout({
@@ -28,10 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={`${inter.variable} ${spaceGrotesk.variable} antialiased`}>
-        <SunsetBanner />
-        {children}
-      </body>
+      <body className={`${inter.variable} ${spaceGrotesk.variable} antialiased`}>{children}</body>
     </html>
   );
 }

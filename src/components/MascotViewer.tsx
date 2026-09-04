@@ -33,9 +33,8 @@ export function MascotViewer({
     const canvas = canvasRef.current;
     if (!viewer || !canvas) return;
 
-    setStatus("loading");
-    setErrorText(null);
-
+    // Status starts as "loading" on mount. Callers that swap modelUrl must
+    // pass a `key` so the component remounts rather than reusing stale state.
     let raf = 0;
     let interval: number | undefined;
     const reducedMotion = prefersReducedMotion();

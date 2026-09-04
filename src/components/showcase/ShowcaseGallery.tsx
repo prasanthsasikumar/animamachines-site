@@ -17,11 +17,17 @@ function formatDate(iso: string) {
 // same generic name — silently overwriting or auto-suffixing in the
 // browser's downloads folder, which looks identical to "nothing downloaded."
 function downloadFilename(item: GalleryItem, kind: "photo" | "model" | "talk") {
-  const namePart = item.label.split("@")[0].replace(/[^a-zA-Z0-9]+/g, "-");
-  const kindPart = item.kind === "booth-session" ? "ah2026" : "avatar";
+  const kindPart = item.kind === "booth-session" ? "ah2026-booth" : "studio-avatar";
   const ext = kind === "photo" ? "png" : "glb";
   const variantPart = kind === "talk" ? "-talk" : "";
-  return `anima-machines-${namePart}-${kindPart}-${item.id.slice(0, 8)}${variantPart}.${ext}`;
+  return `anima-machines-${kindPart}-${item.id.slice(0, 8)}${variantPart}.${ext}`;
+}
+
+// The data export labels each item by the creator's email. That was fine for
+// a logged-in showcase, but this is now a public front page, so we only show
+// what kind of thing it is and when it was made.
+function displayName(item: GalleryItem) {
+  return item.kind === "booth-session" ? "Augmented Humans 2026 booth" : "Studio avatar";
 }
 
 // Always visible (not hover-only) — a hover-reveal affordance is invisible
@@ -62,7 +68,7 @@ function Card({ item, onOpen }: { item: GalleryItem; onOpen: () => void }) {
         {/* eslint-disable-next-line @next/next/no-img-element -- static export asset, matches SessionGrid.tsx convention */}
         <img
           src={item.thumbnailPath}
-          alt={item.label}
+          alt={displayName(item)}
           className="h-56 w-full bg-black/30 object-cover"
         />
         <div className="absolute right-2 top-2 flex gap-1.5">
@@ -91,7 +97,7 @@ function Card({ item, onOpen }: { item: GalleryItem; onOpen: () => void }) {
         </div>
       </div>
       <div className="space-y-1 p-4">
-        <p className="truncate text-xs text-brand-cyan">{item.label}</p>
+        <p className="truncate text-xs text-brand-cyan">{displayName(item)}</p>
         <p className="text-xs text-gray-500">{formatDate(item.createdAt)}</p>
       </div>
     </div>
@@ -121,7 +127,7 @@ export function ShowcaseGallery() {
     : null;
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-10">
+    <section id="gallery" className="mx-auto max-w-6xl px-6 py-10">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {SORTED_GALLERY.map((item) => (
           <Card key={item.id} item={item} onOpen={() => open(item)} />
@@ -143,7 +149,7 @@ export function ShowcaseGallery() {
           >
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
               <div>
-                <h3 className="text-lg font-bold text-white">{selected.label}</h3>
+                <h3 className="text-lg font-bold text-white">{displayName(selected)}</h3>
                 <p className="text-xs text-gray-400">
                   {formatDate(selected.createdAt)} ·{" "}
                   {selected.kind === "booth-session" ? "Augmented Humans 2026 Booth" : "Studio Avatar"}
@@ -159,7 +165,7 @@ export function ShowcaseGallery() {
 
             <div className="h-[500px] w-full">
               {activeGlb && (
-                <MascotViewer className="relative h-full w-full" modelUrl={activeGlb} />
+                <MascotViewer key={activeGlb} className="relative h-full w-full" modelUrl={activeGlb} />
               )}
             </div>
 
@@ -178,16 +184,6 @@ export function ShowcaseGallery() {
                 {selected.valence != null && (
                   <span>
                     Valence: <span className="text-white">{selected.valence}</span>
-                  </span>
-                )}
-                {selected.gender && (
-                  <span>
-                    Gender: <span className="capitalize text-white">{selected.gender}</span>
-                  </span>
-                )}
-                {selected.ageBracket && (
-                  <span>
-                    Age: <span className="text-white">{selected.ageBracket}</span>
                   </span>
                 )}
                 {selected.device && (

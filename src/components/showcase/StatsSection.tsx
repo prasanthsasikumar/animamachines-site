@@ -118,11 +118,11 @@ export function StatsSection() {
   );
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-16">
+    <section id="numbers" className="mx-auto max-w-6xl px-6 py-16">
       <h2 className="mb-2 font-display text-2xl font-bold text-white">By the numbers</h2>
       <p className="mb-10 text-sm text-gray-500">
-        Every stat below comes straight from real usage — {totals.signups} signups, {totals.withDownload}{" "}
-        with something to download.
+        A frozen snapshot of everything that ever happened on the platform — {totals.signups} signups,{" "}
+        {totals.withDownload} with something to download. Small numbers, honestly reported.
       </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
