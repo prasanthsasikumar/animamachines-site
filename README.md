@@ -14,26 +14,25 @@ behaviour engine) lived on a Supabase backend, which has been deleted. Everythin
 shown on the page comes from a frozen export in `src/content/showcase-data.ts` and
 the static models under `public/showcase/`.
 
-## Tech stack
+## What it was
 
-- **Next.js 16** (App Router)
-- **Tailwind CSS** + Inter / Space Grotesk
-- **Three.js** (3D model viewer)
+Anima Machines let you turn a photo of yourself into an expressive, rigged 3D
+avatar. The avatar could show emotion in real time, speak, and be driven by a
+language model, so it could stand in for you — or for an AI — with a face.
 
-No environment variables are needed.
+It started as the avatar side of *emodrink*, the team's paper for Augmented Humans
+2026. At the conference they ran a live booth: visitors answered a few questions
+about their sleep and mood, got a lookalike avatar generated on the spot, and
+watched it recommend them a drink in English or Japanese. The same setup later
+went to the NUS Open House.
 
-## Getting started
+## Capabilities
 
-```bash
-npm install
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-## Deploy (Vercel)
-
-Deploy from the repo root. No Root Directory config needed.
+- **Instant personality** — configure how the avatar sounded, acted, and reacted, with dozens of voice presets or your own.
+- **Multilingual** — 50+ languages with synced lip movements.
+- **Behaviour engine** — triggers for "happy", "thinking", or "confused" states, with real-time emotional response.
+- **LLM agnostic** — worked with OpenAI, Claude, Gemini, or a local model.
+- **Real-time streaming** — sub-200ms latency from text to animated speech, powered by a custom WebGL engine.
 
 ## License
 
