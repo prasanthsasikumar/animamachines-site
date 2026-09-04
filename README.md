@@ -1,13 +1,18 @@
+<p align="center">
+  <img src="public/animamachinesMascot.png" alt="Anima Machines mascot" width="160" height="160" />
+</p>
+
 # Anima Machines
 
-Anima Machines has shut down. This repo is now a single static-style Next.js page:
-a farewell letter and a gallery of every avatar and Augmented Humans 2026 booth
-session people created with the platform.
+Turn a photo into an expressive, rigged 3D avatar — with real-time emotion, voice,
+and an LLM behaviour engine. This is the site that remains after Anima Machines shut
+down: a farewell letter and a gallery of every avatar and Augmented Humans 2026
+booth session people created with the platform.
 
 The original product (photo to rigged 3D avatar, real-time emotion, voice, LLM
-behaviour engine) lived on Supabase, which has been deleted. Everything shown on
-the page comes from a frozen export in `src/content/showcase-data.ts` and the
-static models under `public/showcase/`.
+behaviour engine) lived on a Supabase backend, which has been deleted. Everything
+shown on the page comes from a frozen export in `src/content/showcase-data.ts` and
+the static models under `public/showcase/`.
 
 ## Tech stack
 
